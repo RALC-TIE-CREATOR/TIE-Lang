@@ -69,4 +69,21 @@ All operations verified:
 - CPU: 4/4 programs correct
 - Compiler: 5/5 programs correct
 
-## Key finding
+## Theoretical foundation
+
+Based on TIE (Teoría de la Infraestructura Espacial)
+by Rubén A. Lecona Curto (R@LC), 2026.
+
+## Authors
+
+- R@LC — Theory and concept
+- Claude (Anthropic) — Implementation partner
+
+## Next: Neural Networks
+
+Topological weights cannot be corrupted by noise.
+A neural network where weights are vortices N
+would be inherently noise-immune without 
+error correction overhead.
+
+See `neural/` directory.

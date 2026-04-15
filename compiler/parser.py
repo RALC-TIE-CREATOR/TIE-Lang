@@ -2,28 +2,26 @@
 compiler/parser.py
 ------------------
 Analizador sintáctico de TIE-Lang.
-Convierte la secuencia de tokens en un AST (Abstract Syntax Tree).
+Convierte tokens en AST (Abstract Syntax Tree).
 
-Gramática (simplificada):
-    programa   = sentencia*
-    sentencia  = asignar | print | if | while | def | return | expr
-    asignar    = ('let')? ID '=' expr
-    expr       = comparacion
-    comparacion= aritmetica (COMP aritmetica)?
-    aritmetica = unaria (('+' | '-' | '&' | '|' | '^') unaria)*
-    unaria     = '~' primario | primario
-    primario   = NUM | ID | llamada | '(' expr ')'
-    llamada    = ID '(' args ')'
+Gramática:
+    programa    = sentencia*
+    sentencia   = asignar | print | if | while | def | return | expr
+    asignar     = ('let')? ID '=' expr
+    expr        = comparacion
+    comparacion = aritmetica (COMP aritmetica)?
+    aritmetica  = unaria (('+' | '-' | '&' | '|' | '^') unaria)*
+    unaria      = '~' primario | primario
+    primario    = NUM | llamada | ID | '(' expr ')'
+    llamada     = ID '(' args ')'
 """
 
 from dataclasses import dataclass, field
-from typing import List, Any, Optional
-from .lexer import Lexer, Token, TipoToken
+from typing import List, Any
+from .lexer import Token, TipoToken
 
 
-# ─────────────────────────────────────────────────────────────────────
-# NODOS DEL AST
-# ─────────────────────────────────────────────────────────────────────
+# ── Nodos del AST ────────────────────────────────────────────────────
 
 @dataclass
 class NodoNum:
@@ -80,9 +78,7 @@ class NodoPrint:
     expr: Any
 
 
-# ─────────────────────────────────────────────────────────────────────
-# PARSER
-# ─────────────────────────────────────────────────────────────────────
+# ── Parser ───────────────────────────────────────────────────────────
 
 class Parser:
     """
@@ -90,7 +86,7 @@ class Parser:
 
     Uso:
         parser = Parser(tokens)
-        ast    = parser.parse()  # → List[nodo]
+        ast    = parser.parse()
     """
 
     def __init__(self, tokens: List[Token]):
@@ -102,13 +98,15 @@ class Parser:
 
     def ver(self, offset: int = 1) -> Token:
         i = self.pos + offset
-        return self.tokens[i] if i < len(self.tokens) else Token(TipoToken.EOF, None)
+        return (self.tokens[i] if i < len(self.tokens)
+                else Token(TipoToken.EOF, None))
 
     def consumir(self, tipo: TipoToken = None) -> Token:
         t = self.actual()
         if tipo and t.tipo != tipo:
             raise SyntaxError(
-                f"Línea {t.linea}: esperaba {tipo.name}, encontré {t.tipo.name} ({t.valor!r})")
+                f"Línea {t.linea}: esperaba {tipo.name}, "
+                f"encontré {t.tipo.name} ({t.valor!r})")
         self.pos += 1
         return t
 
@@ -116,7 +114,7 @@ class Parser:
         while self.actual().tipo == TipoToken.NEWLINE:
             self.consumir()
 
-    # ── Expresiones ──────────────────────────
+    # ── Expresiones ──────────────────────────────────────────────────
 
     def parse_expr(self) -> Any:
         return self.parse_comparacion()
@@ -139,7 +137,8 @@ class Parser:
         return izq
 
     def parse_unaria(self) -> Any:
-        if self.actual().tipo == TipoToken.OP and self.actual().valor == '~':
+        if (self.actual().tipo == TipoToken.OP and
+                self.actual().valor == '~'):
             self.consumir()
             return NodoUnOp('~', self.parse_primario())
         return self.parse_primario()
@@ -159,7 +158,8 @@ class Parser:
             e = self.parse_expr()
             self.consumir(TipoToken.RPAREN)
             return e
-        raise SyntaxError(f"Línea {t.linea}: expresión inesperada: {t.valor!r}")
+        raise SyntaxError(
+            f"Línea {t.linea}: expresión inesperada: {t.valor!r}")
 
     def parse_llamada(self) -> Any:
         nombre = self.consumir(TipoToken.ID).valor
@@ -167,12 +167,13 @@ class Parser:
         args = []
         while self.actual().tipo != TipoToken.RPAREN:
             args.append(self.parse_expr())
-            if self.actual().tipo == TipoToken.OP and self.actual().valor == ',':
+            if (self.actual().tipo == TipoToken.OP and
+                    self.actual().valor == ','):
                 self.consumir()
         self.consumir(TipoToken.RPAREN)
         return NodoLlamar(nombre, args)
 
-    # ── Sentencias ───────────────────────────
+    # ── Sentencias ───────────────────────────────────────────────────
 
     def parse_sentencia(self) -> Any:
         t = self.actual()
@@ -185,7 +186,8 @@ class Parser:
             self._skip_newlines()
             return NodoAsignar(nombre, expr)
 
-        if t.tipo == TipoToken.ID and self.ver().tipo == TipoToken.IGUAL:
+        if (t.tipo == TipoToken.ID and
+                self.ver().tipo == TipoToken.IGUAL):
             nombre = self.consumir().valor
             self.consumir(TipoToken.IGUAL)
             expr = self.parse_expr()
@@ -220,7 +222,8 @@ class Parser:
     def parse_bloque(self) -> List:
         self.consumir(TipoToken.INDENT)
         stmts = []
-        while self.actual().tipo not in (TipoToken.DEDENT, TipoToken.EOF):
+        while self.actual().tipo not in (
+                TipoToken.DEDENT, TipoToken.EOF):
             if self.actual().tipo == TipoToken.NEWLINE:
                 self.consumir()
                 continue
@@ -258,7 +261,8 @@ class Parser:
         params = []
         while self.actual().tipo != TipoToken.RPAREN:
             params.append(self.consumir(TipoToken.ID).valor)
-            if self.actual().tipo == TipoToken.OP and self.actual().valor == ',':
+            if (self.actual().tipo == TipoToken.OP and
+                    self.actual().valor == ','):
                 self.consumir()
         self.consumir(TipoToken.RPAREN)
         self.consumir(TipoToken.COLON)
@@ -269,7 +273,8 @@ class Parser:
     def parse(self) -> List:
         stmts = []
         while self.actual().tipo != TipoToken.EOF:
-            if self.actual().tipo in (TipoToken.NEWLINE, TipoToken.DEDENT):
+            if self.actual().tipo in (
+                    TipoToken.NEWLINE, TipoToken.DEDENT):
                 self.consumir()
                 continue
             stmts.append(self.parse_sentencia())

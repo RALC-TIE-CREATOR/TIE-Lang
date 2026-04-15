@@ -2,10 +2,11 @@
 tests/test_puertas.py
 ---------------------
 Tests para puertas lógicas topológicas (NOT, AND, OR).
-Verificado: 3/3 puertas, Turing-completo.
+Resultado verificado: 3/3 puertas correctas. Turing-completo.
 """
 
-import sys, os
+import sys
+import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from core.alu import op_not, op_and, op_or
@@ -13,11 +14,15 @@ from core.alu import op_not, op_and, op_or
 
 def test_not():
     print("── NOT ──────────────────────────────────")
-    casos = [(False, True), (True, False)]
+    casos = [
+        (False, True),
+        (True,  False),
+    ]
     for entrada, esperado in casos:
         resultado = op_not(entrada)
         ok = resultado == esperado
-        print(f"  NOT({int(entrada)}) = {int(resultado)}  esperado={int(esperado)}  {'✅' if ok else '❌'}")
+        print(f"  NOT({int(entrada)}) = {int(resultado)}"
+              f"  esperado={int(esperado)}  {'✅' if ok else '❌'}")
         assert ok, f"NOT({entrada}) falló"
     print()
 
@@ -30,11 +35,12 @@ def test_and():
         (True,  False, False),
         (True,  True,  True),
     ]
-    for a, b, esp in casos:
-        r = op_and(a, b)
-        ok = r == esp
-        print(f"  AND({int(a)},{int(b)}) = {int(r)}  esperado={int(esp)}  {'✅' if ok else '❌'}")
-        assert ok
+    for a, b, esperado in casos:
+        resultado = op_and(a, b)
+        ok = resultado == esperado
+        print(f"  AND({int(a)},{int(b)}) = {int(resultado)}"
+              f"  esperado={int(esperado)}  {'✅' if ok else '❌'}")
+        assert ok, f"AND({a},{b}) falló"
     print()
 
 
@@ -46,19 +52,21 @@ def test_or():
         (True,  False, True),
         (True,  True,  True),
     ]
-    for a, b, esp in casos:
-        r = op_or(a, b)
-        ok = r == esp
-        print(f"  OR({int(a)},{int(b)}) = {int(r)}  esperado={int(esp)}  {'✅' if ok else '❌'}")
-        assert ok
+    for a, b, esperado in casos:
+        resultado = op_or(a, b)
+        ok = resultado == esperado
+        print(f"  OR({int(a)},{int(b)}) = {int(resultado)}"
+              f"  esperado={int(esperado)}  {'✅' if ok else '❌'}")
+        assert ok, f"OR({a},{b}) falló"
     print()
 
 
 if __name__ == "__main__":
     print("=" * 45)
-    print("  TIE-Lang — Tests Puertas Lógicas")
+    print("  TIE-Lang — Tests: Puertas Lógicas")
     print("=" * 45)
+    print()
     test_not()
     test_and()
     test_or()
-    print("✅ Todas las puertas correctas. Turing-completo.")
+    print("✅ 3/3 puertas correctas — Turing-completo")

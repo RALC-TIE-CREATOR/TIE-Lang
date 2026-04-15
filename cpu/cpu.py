@@ -4,54 +4,43 @@ cpu/cpu.py
 CPU TIE-Lang de 4 bits. Ciclo fetch → decode → execute.
 
 Arquitectura:
-    Registros : R0, R1, R2, R3  (propósito general, 4 bits)
+    Registros : R0, R1, R2, R3  (4 bits c/u)
     PC        : Program Counter
     Flags     : Z (zero), N (negative), C (carry)
     RAM       : 16 × 4 bits
     Stack     : para CALL/RET
-
-Todas las operaciones aritméticas y lógicas delegan
-a core/alu.py, que usa física de vórtices topológicos.
 """
 
 from typing import List, Dict, Optional
 from .instrucciones import Instruccion, Operacion
 from .memoria import MemoriaPrograma, MemoriaDatos
-from ..core.alu import (
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from core.alu import (
     sumar, restar, and4, or4, not4, xor4, cmp4
 )
 
 
 class CPU:
-    """
-    CPU topológica de 4 bits.
-
-    El ciclo de ejecución:
-        1. FETCH   — leer instrucción en PC
-        2. DECODE  — resolver operandos
-        3. EXECUTE — ALU topológica
-        4. UPDATE  — registros, flags, PC
-    """
+    """CPU topológica de 4 bits."""
 
     REGISTROS = ('R0', 'R1', 'R2', 'R3')
 
     def __init__(self):
         self.regs:   Dict[str, int] = {r: 0 for r in self.REGISTROS}
-        self.PC:     int   = 0
-        self.Z:      bool  = False
-        self.N:      bool  = False
-        self.C:      bool  = False
+        self.PC:     int  = 0
+        self.Z:      bool = False
+        self.N:      bool = False
+        self.C:      bool = False
         self.ram:    MemoriaDatos = MemoriaDatos()
         self.pila:   List[int]    = []
-        self.activo: bool  = True
-        self.ciclos: int   = 0
+        self.activo: bool = True
+        self.ciclos: int  = 0
         self.traza:  List[str] = []
         self.salida: List[int] = []
 
-    # ── Lectura de operandos ──────────────────
-
     def _leer(self, src) -> int:
-        """Resuelve un operando: registro, inmediato o @dirección."""
         if src is None:
             return 0
         if src in self.regs:
@@ -73,16 +62,12 @@ class CPU:
     def _log(self, msg: str):
         self.traza.append(f"  [{self.ciclos:3d}] {msg}")
 
-    # ── Ejecución ─────────────────────────────
-
     def execute(self, instr: Instruccion, mem: MemoriaPrograma):
-        """Ejecuta una instrucción. Actualiza PC."""
         A  = self._leer(instr.src1)
         B  = self._leer(instr.src2)
         op = instr.op
         r  = 0
 
-        # ── TRANSFERENCIA ─────────────────────
         if op == Operacion.LOAD:
             r = A
             self._log(f"LOAD {instr.dest} ← {A}")
@@ -101,7 +86,6 @@ class CPU:
             r = A
             self._log(f"MOVE {instr.dest} ← {A}")
 
-        # ── ARITMÉTICA ────────────────────────
         elif op == Operacion.SUMA:
             ext   = sumar(A, B)
             carry = ext > 15
@@ -115,7 +99,6 @@ class CPU:
             self._flags(r, negativo=neg)
             self._log(f"RESTA {instr.dest} = {A}-{B} = {r} (N={int(neg)})")
 
-        # ── LÓGICA ────────────────────────────
         elif op == Operacion.AND:
             r = and4(A, B)
             self._flags(r)
@@ -140,12 +123,11 @@ class CPU:
             c = cmp4(A, B)
             self.Z = (c == 0)
             self.N = (c == 2)
-            label = ['=', '>', '<'][c]
+            label  = ['=', '>', '<'][c]
             self._log(f"CMP {instr.src1}({A}) {label} {instr.src2}({B})")
             self.PC += 1
             return
 
-        # ── SALTOS ────────────────────────────
         elif op == Operacion.JMP:
             d = mem.resolver(instr.src1)
             self.PC = d if d >= 0 else int(instr.src1)
@@ -172,7 +154,6 @@ class CPU:
                 self.PC += 1
             return
 
-        # ── SUBRUTINAS ────────────────────────
         elif op == Operacion.CALL:
             self.pila.append(self.PC + 1)
             d = mem.resolver(instr.src1)
@@ -185,7 +166,6 @@ class CPU:
             self._log(f"RET → PC={self.PC}")
             return
 
-        # ── CONTROL ───────────────────────────
         elif op == Operacion.HALT:
             self._log("HALT")
             self.activo = False
@@ -199,21 +179,15 @@ class CPU:
             self.PC += 1
             return
 
-        # ── ESCRIBIR RESULTADO ─────────────────
         if instr.dest and instr.dest in self.regs:
             self.regs[instr.dest] = r & 0xF
         self.PC     += 1
         self.ciclos += 1
 
-    # ── Ejecución completa ────────────────────
-
     def run(self, programa: List[Instruccion],
             max_ciclos: int = 500,
             verbose: bool = True) -> dict:
-        """
-        Ejecuta un programa completo.
-        Retorna dict con registros, flags y salida.
-        """
+        """Ejecuta un programa completo."""
         mem = MemoriaPrograma(programa)
         self.activo = True
         self.PC     = 0
@@ -238,7 +212,8 @@ class CPU:
             for l in self.traza[-30:]:
                 print(l)
             print(f"\n  Registros: {self.regs}")
-            print(f"  Flags: Z={int(self.Z)} N={int(self.N)} C={int(self.C)}")
+            print(f"  Flags: Z={int(self.Z)} "
+                  f"N={int(self.N)} C={int(self.C)}")
             d = self.ram.dump()
             if d:
                 print(f"  RAM: {d}")

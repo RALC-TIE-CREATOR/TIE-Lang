@@ -1,7 +1,7 @@
 """
 cpu/instrucciones.py
 --------------------
-Definición del conjunto de instrucciones (ISA) de TIE-Lang.
+Conjunto de instrucciones (ISA) de TIE-Lang.
 
 Formato: OPCODE dest src1 src2/inmediato
 
@@ -18,11 +18,11 @@ from typing import Optional
 
 
 class Operacion(Enum):
-    # Transferencia de datos
-    LOAD   = auto()   # carga inmediata:     dest = inmediato
-    LOAD_M = auto()   # carga desde RAM:     dest = RAM[src1]
-    STORE  = auto()   # guarda en RAM:       RAM[src2] = src1
-    MOVE   = auto()   # copia de registro:   dest = src1
+    # Transferencia
+    LOAD   = auto()   # dest = inmediato
+    LOAD_M = auto()   # dest = RAM[src1]
+    STORE  = auto()   # RAM[src2] = src1
+    MOVE   = auto()   # dest = src1
 
     # Aritmética
     SUMA   = auto()   # dest = src1 + src2
@@ -34,21 +34,21 @@ class Operacion(Enum):
     NOT    = auto()   # dest = ~src1
     XOR    = auto()   # dest = src1 ^ src2
 
-    # Comparación (actualiza flags Z, N)
-    CMP    = auto()   # compara src1 vs src2, no escribe dest
+    # Comparación
+    CMP    = auto()   # actualiza flags Z, N
 
     # Saltos
-    JMP    = auto()   # salto incondicional: PC = etiqueta
-    JZ     = auto()   # salto si Z=True:     PC = etiqueta
-    JN     = auto()   # salto si N=True:     PC = etiqueta
+    JMP    = auto()   # PC = etiqueta
+    JZ     = auto()   # if Z: PC = etiqueta
+    JN     = auto()   # if N: PC = etiqueta
 
     # Subrutinas
-    CALL   = auto()   # guarda PC+1, salta a función
-    RET    = auto()   # retorna: PC = tope de pila
+    CALL   = auto()   # push PC+1, PC = función
+    RET    = auto()   # PC = pop
 
     # Control
-    HALT   = auto()   # detiene la CPU
-    PRINT  = auto()   # salida (debug/display)
+    HALT   = auto()
+    PRINT  = auto()
 
 
 @dataclass
@@ -56,12 +56,11 @@ class Instruccion:
     """
     Una instrucción del ISA TIE-Lang.
 
-    Campos:
-        op    : operación (Operacion enum)
-        dest  : registro destino ('R0'–'R3') o None
-        src1  : primer operando: registro, inmediato o etiqueta
-        src2  : segundo operando o dirección RAM
-        label : etiqueta de esta instrucción (para saltos)
+    op    : operación (Operacion enum)
+    dest  : registro destino ('R0'–'R3') o None
+    src1  : primer operando: registro, inmediato o etiqueta
+    src2  : segundo operando o dirección RAM
+    label : etiqueta de esta instrucción (para saltos)
     """
     op:    Operacion
     dest:  Optional[str] = None

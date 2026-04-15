@@ -1,6 +1,7 @@
-if __name__ == "__main__":
-    red = Red(30, 30, 3)
-    red.insertar_vortice(15, 15, N=1)
-    print(red)
-    red.evolucionar(10)
-    print(f"Energía tras evolución: {red.energia():.3f}")
+from .red import Red
+from .vortice import medir_N
+from .alu import (
+    op_not, op_and, op_or,
+    half_adder, full_adder,
+    sumar, restar, and4, or4, not4, xor4, cmp4
+)

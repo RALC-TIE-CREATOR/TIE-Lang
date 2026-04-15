@@ -2,9 +2,9 @@
 compiler/lexer.py
 -----------------
 Analizador léxico de TIE-Lang.
-Convierte código fuente (texto) en una secuencia de tokens.
+Convierte código fuente en tokens.
 
-Maneja indentación estilo Python para bloques (if/while/def).
+Maneja indentación estilo Python para bloques.
 """
 
 from enum import Enum, auto
@@ -13,11 +13,8 @@ from typing import List, Any
 
 
 class TipoToken(Enum):
-    # Literales
     NUM     = auto()   # 42
-    ID      = auto()   # variable_name
-
-    # Palabras clave
+    ID      = auto()   # nombre_variable
     LET     = auto()   # let
     IF      = auto()   # if
     ELSE    = auto()   # else
@@ -25,18 +22,12 @@ class TipoToken(Enum):
     DEF     = auto()   # def
     RETURN  = auto()   # return
     PRINT   = auto()   # print
-
-    # Operadores
     OP      = auto()   # + - & | ^ ~
     COMP    = auto()   # == != < > <= >=
-    IGUAL   = auto()   # =  (asignación)
-
-    # Puntuación
+    IGUAL   = auto()   # =
     LPAREN  = auto()   # (
     RPAREN  = auto()   # )
     COLON   = auto()   # :
-
-    # Control de bloque
     NEWLINE = auto()
     INDENT  = auto()
     DEDENT  = auto()
@@ -69,7 +60,7 @@ class Lexer:
     Tokenizador para TIE-Lang.
 
     Uso:
-        lexer = Lexer(fuente)
+        lexer  = Lexer(fuente)
         tokens = lexer.tokens
     """
 
@@ -86,32 +77,29 @@ class Lexer:
             if not stripped or stripped.startswith('#'):
                 continue
 
-            # Calcular nivel de indentación
             espacios = len(linea) - len(linea.lstrip())
             nivel    = pila_indent[-1]
 
             if espacios > nivel:
                 pila_indent.append(espacios)
-                self.tokens.append(Token(TipoToken.INDENT, espacios, nlinea))
+                self.tokens.append(
+                    Token(TipoToken.INDENT, espacios, nlinea))
             while espacios < pila_indent[-1]:
                 pila_indent.pop()
-                self.tokens.append(Token(TipoToken.DEDENT, espacios, nlinea))
+                self.tokens.append(
+                    Token(TipoToken.DEDENT, espacios, nlinea))
 
-            # Tokenizar contenido de la línea
             i = 0
             while i < len(stripped):
                 c = stripped[i]
 
-                # Espacio
                 if c == ' ':
                     i += 1
                     continue
 
-                # Comentario inline
                 if c == '#':
                     break
 
-                # Número
                 if c.isdigit():
                     j = i
                     while j < len(stripped) and stripped[j].isdigit():
@@ -121,7 +109,6 @@ class Lexer:
                     i = j
                     continue
 
-                # Identificador o palabra clave
                 if c.isalpha() or c == '_':
                     j = i
                     while j < len(stripped) and (
@@ -133,44 +120,46 @@ class Lexer:
                     i = j
                     continue
 
-                # Comparadores de 2 caracteres
-                if i + 1 < len(stripped) and stripped[i:i+2] in ('==','!=','<=','>='):
+                if (i + 1 < len(stripped) and
+                        stripped[i:i+2] in ('==', '!=', '<=', '>=')):
                     self.tokens.append(
                         Token(TipoToken.COMP, stripped[i:i+2], nlinea))
                     i += 2
                     continue
 
-                # Asignación (= sin otro =)
-                if c == '=' and (i+1 >= len(stripped) or stripped[i+1] != '='):
-                    self.tokens.append(Token(TipoToken.IGUAL, '=', nlinea))
+                if c == '=' and (i + 1 >= len(stripped) or
+                                  stripped[i+1] != '='):
+                    self.tokens.append(
+                        Token(TipoToken.IGUAL, '=', nlinea))
                     i += 1
                     continue
 
-                # Comparadores simples
                 if c in '<>':
-                    self.tokens.append(Token(TipoToken.COMP, c, nlinea))
+                    self.tokens.append(
+                        Token(TipoToken.COMP, c, nlinea))
                     i += 1
                     continue
 
-                # Operadores aritméticos/lógicos
                 if c in '+-&|^~':
-                    self.tokens.append(Token(TipoToken.OP, c, nlinea))
+                    self.tokens.append(
+                        Token(TipoToken.OP, c, nlinea))
                     i += 1
                     continue
 
-                # Puntuación
-                mapa = {'(': TipoToken.LPAREN, ')': TipoToken.RPAREN,
-                        ':': TipoToken.COLON}
+                mapa = {
+                    '(': TipoToken.LPAREN,
+                    ')': TipoToken.RPAREN,
+                    ':': TipoToken.COLON,
+                }
                 if c in mapa:
                     self.tokens.append(Token(mapa[c], c, nlinea))
                     i += 1
                     continue
 
-                i += 1  # saltar carácter no reconocido
+                i += 1
 
             self.tokens.append(Token(TipoToken.NEWLINE, '\n', nlinea))
 
-        # Limpiar NEWLINEs al final y cerrar DEDENTs
         while self.tokens and self.tokens[-1].tipo == TipoToken.NEWLINE:
             self.tokens.pop()
 

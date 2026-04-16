@@ -4,13 +4,16 @@
 
 TIE-Lang can now be used in three ways:
 
-1. As a Python library:
+1. As an installed command-line tool:
+   `tie examples/fibonacci.tie`
+
+2. As a Python library:
    `from compiler.compiler import compile_and_run`
 
-2. As a module runner:
+3. As a module runner:
    `python -m compiler.run examples/fibonacci.tie`
 
-3. As a root launcher:
+4. As a root launcher:
    `python tie.py examples/fibonacci.tie`
 
 ## Editable install
@@ -38,6 +41,5 @@ This is enough for:
 Before broader public distribution, the next recommended steps are:
 
 - choose an explicit license
-- decide whether `tie.py` or installed `tie` is the canonical entry point
 - add versioning policy for the language spec
 - optionally publish to PyPI only after syntax and v1 semantics are frozen

@@ -11,14 +11,14 @@
 
 ## Before public release
 
-- decide whether legacy whitespace call syntax should remain public or become undocumented compatibility only
-- decide whether `tie.py` or installed `tie` is the primary public command
 - optionally add screenshots or transcript snippets of the CLI demos
 
 ## Already completed
 
 - Apache License 2.0 added
 - `v0.1.0` tag and GitHub release created
+- `tie` chosen as the primary public command
+- legacy whitespace argument syntax retained for compatibility in v1.0
 
 ## Recommended public demo set
 

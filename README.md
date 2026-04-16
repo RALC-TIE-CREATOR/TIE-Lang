@@ -77,10 +77,11 @@ print x + y
 Run a `.tie` file directly:
 
 ```bash
+tie examples/fibonacci.tie
+tie examples/funciones.tie
 python -m compiler.run examples/fibonacci.tie
 python -m compiler.run examples/fibonacci.tie --asm
 python tie.py examples/fibonacci.tie
-python tie.py examples/funciones.tie
 ```
 
 ## Local install
@@ -98,11 +99,14 @@ pip install -e .
 tie examples/fibonacci.tie
 ```
 
+`tie` is the primary public command for TIE-Lang.
+`python -m compiler.run` and `python tie.py` remain supported execution paths.
+
 ## Syntax notes
 
 - Blocks use Python-style indentation.
 - Official v1.0 function syntax uses commas: `f(a, b)`.
-- Legacy whitespace form `f(a b)` is still accepted for compatibility.
+- Legacy whitespace form `f(a b)` is intentionally retained for compatibility in v1.0.
 - Arithmetic and storage are currently 4-bit at the CPU level.
 - Negative subtraction wraps in 4 bits and also sets the `N` flag.
 
@@ -140,7 +144,7 @@ The current implementation now has a stable v1.0 execution model:
 - Arithmetic is modular at 4 bits in the CPU.
 - Comparisons produce boolean values `1` or `0`.
 - Function arguments currently support up to 4 positional values.
-- Official syntax is `f(a, b)`, while `f(a b)` remains legacy-compatible.
+- Official syntax is `f(a, b)`, while `f(a b)` is intentionally preserved as legacy-compatible syntax in v1.0.
 
 See `docs/spec.md` for the technical reference and
 `docs/arquitectura.md` for the execution pipeline.
@@ -174,7 +178,6 @@ See `CHANGELOG.md` for implementation milestones and
 
 Near-term work after `v0.1.0`:
 
-- freeze whether legacy whitespace argument syntax will remain public
 - improve public demos and release presentation
 - expand the language beyond the current 4-bit baseline
 - evaluate the next major layer: neural/topological learning components

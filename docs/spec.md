@@ -73,11 +73,11 @@ Official v1.0 syntax is comma-separated:
 
 - `f(a, b)`
 
-Legacy whitespace-separated calls remain accepted for compatibility in v1.0:
+Legacy whitespace-separated calls remain intentionally accepted for compatibility in v1.0:
 
 - `f(a b)`
 
-This legacy form should be treated as compatibility syntax, not as the preferred public style.
+This legacy form is compatibility syntax, not the preferred public style.
 
 ## Control flow
 

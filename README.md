@@ -15,6 +15,21 @@ Theory (TIE/SIT). The core insight:
 > Therefore reality already has a programming language.
 > TIE-Lang is an attempt to discover it.
 
+TIE-Lang is both:
+
+- a conceptual programming language derived from TIE/SIT
+- a working Python implementation that compiles source code into a 4-bit virtual CPU
+
+## Why TIE-Lang?
+
+TIE-Lang is not meant to be just another toy syntax.
+The project tries to connect:
+
+- topological information primitives
+- a concrete execution model
+- a small but real source language
+- a path from theory to executable computation
+
 ## How it works
 
 Classical computers store bits as voltage (fragile).
@@ -65,6 +80,7 @@ Run a `.tie` file directly:
 python -m compiler.run examples/fibonacci.tie
 python -m compiler.run examples/fibonacci.tie --asm
 python tie.py examples/fibonacci.tie
+python tie.py examples/funciones.tie
 ```
 
 ## Local install
@@ -89,6 +105,20 @@ tie examples/fibonacci.tie
 - Legacy whitespace form `f(a b)` is still accepted for compatibility.
 - Arithmetic and storage are currently 4-bit at the CPU level.
 - Negative subtraction wraps in 4 bits and also sets the `N` flag.
+
+Example:
+
+```tie
+def max(a, b):
+    if a > b:
+        return a
+    else:
+        return b
+
+let x = 6
+let y = 9
+print max(x, y)
+```
 
 ## Results
 
@@ -123,10 +153,31 @@ See `docs/spec.md` for the technical reference and
 - `examples/`: canonical `.tie` programs
 - `tests/`: verification suites for compiler, CPU, ALU, runner and CLI
 
+## Current limits
+
+The current implementation is intentionally small and explicit:
+
+- CPU model is 4-bit
+- RAM model is 16 cells
+- function calls support up to 4 positional arguments
+- no arrays, strings or floating point yet
+- variable storage is RAM-based and global to the compiled program model
+
+These are implementation limits, not necessarily permanent design limits.
+
 ## Release notes
 
 See `CHANGELOG.md` for implementation milestones and
 `docs/distribution.md` for local packaging and publication notes.
+
+## Roadmap
+
+Near-term work after `v0.1.0`:
+
+- freeze whether legacy whitespace argument syntax will remain public
+- improve public demos and release presentation
+- expand the language beyond the current 4-bit baseline
+- evaluate the next major layer: neural/topological learning components
 
 ## Theoretical foundation
 

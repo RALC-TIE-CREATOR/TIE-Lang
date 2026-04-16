@@ -194,7 +194,6 @@ Apache License 2.0. See `LICENSE`.
 ## Authors
 
 - R@LC — Theory and concept
-- Claude (Anthropic) — Implementation partner
 
 ## Next: Neural Networks
 

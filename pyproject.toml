@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tie-lang"
+version = "0.1.0"
+description = "TIE-Lang: Topological Infrastructure Language"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "R@LC" }
+]
+keywords = ["programming-language", "topology", "tie", "cpu", "compiler"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "License :: Other/Proprietary License",
+  "Operating System :: OS Independent",
+  "Topic :: Software Development :: Compilers",
+]
+
+[project.scripts]
+tie = "compiler.run:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["compiler*", "core*", "cpu*"]

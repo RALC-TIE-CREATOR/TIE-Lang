@@ -181,8 +181,7 @@ class CPU:
 
         if instr.dest and instr.dest in self.regs:
             self.regs[instr.dest] = r & 0xF
-        self.PC     += 1
-        self.ciclos += 1
+        self.PC += 1
 
     def run(self, programa: List[Instruccion],
             max_ciclos: int = 500,

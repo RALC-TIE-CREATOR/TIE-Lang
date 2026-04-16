@@ -41,25 +41,26 @@ def test_hola_mundo():
 
 
 def test_fibonacci():
-    """Fibonacci hasta 4 bits: 0,1,1,2,3,5,8,13."""
+    """Fibonacci de 4 bits con contador fijo: 0,1,1,2,3,5,8,13."""
     print("── P2: Fibonacci ────────────────────────")
     cpu = CPU()
     resultado = cpu.run([
         I(Operacion.LOAD,  'R0', '0'),
         I(Operacion.LOAD,  'R1', '1'),
+        I(Operacion.LOAD,  'R3', '6'),
         I(Operacion.PRINT, None, 'R0'),
         I(Operacion.PRINT, None, 'R1'),
         # bucle:
+        I(Operacion.CMP,   None, 'R3', '0', label='loop'),
+        I(Operacion.JZ,    None, 'fin'),
         I(Operacion.SUMA,  'R2', 'R0', 'R1'),
-        I(Operacion.CMP,   None, 'R2', '14'),
-        I(Operacion.JN,    None, 'fin'),
         I(Operacion.PRINT, None, 'R2'),
         I(Operacion.MOVE,  'R0', 'R1'),
         I(Operacion.MOVE,  'R1', 'R2'),
-        I(Operacion.JMP,   None, '4'),
+        I(Operacion.RESTA, 'R3', 'R3', '1'),
+        I(Operacion.JMP,   None, 'loop'),
         # fin:
-        I(Operacion.PRINT, None, 'R2', label='fin'),
-        I(Operacion.HALT),
+        I(Operacion.HALT,  label='fin'),
     ], verbose=False)
 
     salida = resultado['salida']

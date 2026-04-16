@@ -59,6 +59,37 @@ print x + y
 # Output: 15
 ```
 
+Run a `.tie` file directly:
+
+```bash
+python -m compiler.run examples/fibonacci.tie
+python -m compiler.run examples/fibonacci.tie --asm
+python tie.py examples/fibonacci.tie
+```
+
+## Local install
+
+Run directly from the repo:
+
+```bash
+python tie.py examples/fibonacci.tie
+```
+
+Install as a local command:
+
+```bash
+pip install -e .
+tie examples/fibonacci.tie
+```
+
+## Syntax notes
+
+- Blocks use Python-style indentation.
+- Official v1.0 function syntax uses commas: `f(a, b)`.
+- Legacy whitespace form `f(a b)` is still accepted for compatibility.
+- Arithmetic and storage are currently 4-bit at the CPU level.
+- Negative subtraction wraps in 4 bits and also sets the `N` flag.
+
 ## Results
 
 All operations verified:
@@ -67,7 +98,35 @@ All operations verified:
 - Memory: 51/51 persistence checks, zero degradation
 - ALU: 22/22 operations correct (100%)
 - CPU: 4/4 programs correct
-- Compiler: 5/5 programs correct
+- Compiler: 7/7 programs correct
+
+## Language spec
+
+The current implementation now has a stable v1.0 execution model:
+
+- Source syntax is indentation-based.
+- Variables live in 4-bit RAM.
+- Registers `R0`-`R3` are 4-bit.
+- Arithmetic is modular at 4 bits in the CPU.
+- Comparisons produce boolean values `1` or `0`.
+- Function arguments currently support up to 4 positional values.
+- Official syntax is `f(a, b)`, while `f(a b)` remains legacy-compatible.
+
+See `docs/spec.md` for the technical reference and
+`docs/arquitectura.md` for the execution pipeline.
+
+## Project layout
+
+- `compiler/`: lexer, parser, compiler, runner
+- `core/`: topological logic and arithmetic primitives
+- `cpu/`: 4-bit virtual CPU and memory
+- `examples/`: canonical `.tie` programs
+- `tests/`: verification suites for compiler, CPU, ALU, runner and CLI
+
+## Release notes
+
+See `CHANGELOG.md` for implementation milestones and
+`docs/distribution.md` for local packaging and publication notes.
 
 ## Theoretical foundation
 

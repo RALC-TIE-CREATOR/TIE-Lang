@@ -5,7 +5,7 @@ Tests del compilador TIE-Lang v1.0.
 Verifica el pipeline completo:
     fuente → Lexer → Parser → AST → Compilador → CPU
 
-Programas verificados: 5/5 correctos.
+Programas verificados: 7/7 correctos.
 """
 
 import sys
@@ -113,6 +113,48 @@ print m
     print()
 
 
+def test_funcion_con_comas():
+    """P6: Sintaxis con comas en definición y llamada."""
+    print("── P6: Función con comas ─────────────────")
+    resultado = compile_and_run("""
+def max(a, b):
+    if a > b:
+        return a
+    else:
+        return b
+
+let x = 6
+let y = 9
+let m = max(x, y)
+print m
+""", titulo="P6", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [9]
+    print(f"  Salida: {salida}  esperado=[9]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
+def test_comparadores():
+    """P7: Regresión de comparadores básicos."""
+    print("── P7: Comparadores ─────────────────────")
+    resultado = compile_and_run("""
+print 5 == 5
+print 5 != 5
+print 3 < 7
+print 7 > 3
+print 3 <= 3
+print 7 >= 7
+""", titulo="P7", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [1, 0, 1, 1, 1, 1]
+    print(f"  Salida: {salida}  esperado=[1, 0, 1, 1, 1, 1]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
 if __name__ == "__main__":
     print("=" * 50)
     print("  TIE-Lang — Tests: Compilador v1.0")
@@ -123,4 +165,6 @@ if __name__ == "__main__":
     test_while()
     test_funcion()
     test_funcion_con_if()
-    print("✅ Compilador completo — 5/5 programas correctos")
+    test_funcion_con_comas()
+    test_comparadores()
+    print("✅ Compilador completo — 7/7 programas correctos")

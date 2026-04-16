@@ -22,7 +22,7 @@ class TipoToken(Enum):
     DEF     = auto()   # def
     RETURN  = auto()   # return
     PRINT   = auto()   # print
-    OP      = auto()   # + - & | ^ ~
+    OP      = auto()   # + - & | ^ ~ ,
     COMP    = auto()   # == != < > <= >=
     IGUAL   = auto()   # =
     LPAREN  = auto()   # (
@@ -140,7 +140,7 @@ class Lexer:
                     i += 1
                     continue
 
-                if c in '+-&|^~':
+                if c in '+-&|^~,':
                     self.tokens.append(
                         Token(TipoToken.OP, c, nlinea))
                     i += 1

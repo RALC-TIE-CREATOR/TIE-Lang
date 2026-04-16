@@ -8,14 +8,14 @@ def doble(n):
     return n + n
 
 # Función: máximo de dos números
-def max(a b):
+def max(a, b):
     if a > b:
         return a
     else:
         return b
 
 # Función: mínimo de dos números
-def min(a b):
+def min(a, b):
     if a < b:
         return a
     else:
@@ -30,9 +30,9 @@ let r1 = doble(x)
 print r1
 
 # min(6, 9) = 6
-let r2 = min(y z)
+let r2 = min(y, z)
 print r2
 
 # max(6, 9) = 9
-let r3 = max(y z)
+let r3 = max(y, z)
 print r3

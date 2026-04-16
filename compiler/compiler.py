@@ -88,66 +88,37 @@ class Compilador:
             if nodo.op in ('==', '!=', '<', '>', '<=', '>='):
                 self._emit(Operacion.CMP, None, 'R0', 'R1')
                 etq_si  = self._nueva_etiqueta('si')
+                etq_no  = self._nueva_etiqueta('no')
                 etq_fin = self._nueva_etiqueta('fin')
 
                 if nodo.op == '==':
                     self._emit(Operacion.JZ, None, etq_si)
 
                 elif nodo.op == '!=':
-                    etq_no = self._nueva_etiqueta('no')
-                    self._emit(Operacion.JZ,   None, etq_no)
-                    self._emit(Operacion.LOAD,  reg, '1')
-                    self._emit(Operacion.JMP,   None, etq_fin)
-                    self._emit(Operacion.LOAD,  reg, '0',
-                               label=etq_no)
-                    self._emit(Operacion.JMP,   None, etq_fin)
-                    self._emit(Operacion.LOAD,  reg, '0',
-                               label=etq_fin)
-                    return reg
+                    self._emit(Operacion.JZ, None, etq_no)
+                    self._emit(Operacion.JMP, None, etq_si)
 
                 elif nodo.op == '<':
                     self._emit(Operacion.JN, None, etq_si)
 
                 elif nodo.op == '>':
-                    etq_no = self._nueva_etiqueta('no')
-                    self._emit(Operacion.JZ,   None, etq_no)
-                    self._emit(Operacion.JN,   None, etq_no)
-                    self._emit(Operacion.LOAD,  reg, '1')
-                    self._emit(Operacion.JMP,   None, etq_fin)
-                    self._emit(Operacion.LOAD,  reg, '0',
-                               label=etq_no)
-                    self._emit(Operacion.JMP,   None, etq_fin)
-                    self._emit(Operacion.LOAD,  reg, '0',
-                               label=etq_fin)
-                    return reg
+                    self._emit(Operacion.JZ, None, etq_no)
+                    self._emit(Operacion.JN, None, etq_no)
+                    self._emit(Operacion.JMP, None, etq_si)
 
                 elif nodo.op == '<=':
-                    self._emit(Operacion.JZ,  None, etq_si)
-                    self._emit(Operacion.JN,  None, etq_si)
-                    self._emit(Operacion.LOAD, reg, '0')
-                    self._emit(Operacion.JMP,  None, etq_fin)
-                    self._emit(Operacion.LOAD, reg, '1',
-                               label=etq_si)
-                    self._emit(Operacion.JMP,  None, etq_fin)
-                    self._emit(Operacion.LOAD, reg, '0',
-                               label=etq_fin)
-                    return reg
+                    self._emit(Operacion.JZ, None, etq_si)
+                    self._emit(Operacion.JN, None, etq_si)
 
                 elif nodo.op == '>=':
-                    etq_no = self._nueva_etiqueta('no')
-                    self._emit(Operacion.JN,   None, etq_no)
-                    self._emit(Operacion.LOAD,  reg, '1')
-                    self._emit(Operacion.JMP,   None, etq_fin)
-                    self._emit(Operacion.LOAD,  reg, '0',
-                               label=etq_no)
-                    self._emit(Operacion.JMP,   None, etq_fin)
-                    self._emit(Operacion.LOAD,  reg, '0',
-                               label=etq_fin)
-                    return reg
+                    self._emit(Operacion.JN, None, etq_no)
+                    self._emit(Operacion.JMP, None, etq_si)
 
+                self._emit(Operacion.LOAD, reg, '0', label=etq_no)
+                self._emit(Operacion.JMP, None, etq_fin)
                 self._emit(Operacion.LOAD, reg, '1', label=etq_si)
-                self._emit(Operacion.JMP,  None, etq_fin)
-                self._emit(Operacion.LOAD, reg, '0', label=etq_fin)
+                self._emit(Operacion.JMP, None, etq_fin)
+                self._emit(Operacion.LOAD, reg, reg, label=etq_fin)
                 return reg
 
         if isinstance(nodo, NodoLlamar):
@@ -207,6 +178,14 @@ class Compilador:
             etq_saltar = self._nueva_etiqueta('skipfn')
             self._emit(Operacion.JMP, None, etq_saltar)
             primera = True
+            regs_args = ['R0', 'R1', 'R2', 'R3']
+            for i, param in enumerate(nodo.params[:4]):
+                prev_len = len(self.codigo)
+                self._emit(Operacion.STORE, None, regs_args[i],
+                           str(self._addr(param)))
+                if primera:
+                    self.codigo[prev_len].label = nodo.nombre
+                    primera = False
             for s in nodo.cuerpo:
                 prev_len = len(self.codigo)
                 if isinstance(s, NodoReturn):

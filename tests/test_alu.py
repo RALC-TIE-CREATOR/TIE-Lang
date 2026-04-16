@@ -34,7 +34,7 @@ def test_resta():
     casos = [
         (7,  3, 4,  False),
         (10, 5, 5,  False),
-        (3,  7, 4,  True),
+        (3,  7, 12, True),
         (0,  0, 0,  False),
         (15, 8, 7,  False),
     ]

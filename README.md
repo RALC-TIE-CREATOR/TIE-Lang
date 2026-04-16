@@ -133,6 +133,10 @@ See `CHANGELOG.md` for implementation milestones and
 Based on TIE (Teoría de la Infraestructura Espacial)
 by Rubén A. Lecona Curto (R@LC), 2026.
 
+## License
+
+Apache License 2.0. See `LICENSE`.
+
 ## Authors
 
 - R@LC — Theory and concept

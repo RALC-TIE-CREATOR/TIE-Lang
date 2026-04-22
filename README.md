@@ -143,7 +143,7 @@ All operations verified:
 - Memory: 51/51 persistence checks, zero degradation
 - ALU: 22/22 operations correct (100%)
 - CPU: 4/4 programs correct
-- Compiler: 7/7 programs correct
+- Compiler: 10/10 programs correct
 
 ## Language spec
 
@@ -155,6 +155,7 @@ The current implementation now has a stable v1.0 execution model:
 - Arithmetic is modular at 4 bits in the CPU.
 - Comparisons produce boolean values `1` or `0`.
 - Function arguments currently support up to 4 positional values.
+- Functions now support compile-time local scope with global reads when not shadowed.
 - Official syntax is `f(a, b)`, while `f(a b)` is intentionally preserved as legacy-compatible syntax in v1.0.
 
 See `docs/spec.md` for the technical reference and
@@ -177,7 +178,7 @@ The current implementation is intentionally small and explicit:
 - RAM model is 16 cells
 - function calls support up to 4 positional arguments
 - no arrays, strings or floating point yet
-- variable storage is RAM-based and global to the compiled program model
+- function scope is static and RAM-based, without full dynamic stack frames yet
 
 These are implementation limits, not necessarily permanent design limits.
 

@@ -61,6 +61,9 @@ Function behavior in v1.0:
 - Up to 4 positional arguments are supported.
 - Arguments are passed through registers `R0` to `R3`.
 - On function entry, arguments are stored into the function's variable slots in RAM.
+- Function parameters and variables assigned inside a function use function-local RAM slots.
+- A function may read a global variable when no local variable shadows that name.
+- A local variable shadows a global variable with the same name for the duration of that function body.
 - Return values are produced in `R3`.
 - A call used inside an expression is moved from `R3` into the requested destination register.
 
@@ -130,9 +133,11 @@ Example:
 ## Memory model
 
 - Variables are assigned fixed RAM slots by name during compilation.
-- A variable first appears when assigned or referenced.
+- A global variable first appears when assigned or referenced at top level.
+- A function-local variable first appears when assigned inside that function, or when it is declared as a parameter.
 - RAM is shared across the current compiled program.
 - Function parameters are materialized into RAM on function entry.
+- Function-local slots are separate from global slots, so local temporaries do not overwrite top-level variables by name.
 
 ## Current limits
 
@@ -144,7 +149,8 @@ Known implementation limits in v1.0:
 - no floating point
 - no strings
 - no arrays
-- no lexical scopes beyond the current RAM-based variable allocation model
+- function scope is static at compile time, not a full dynamic stack-frame model
+- recursion is not guaranteed by the current RAM-slot allocation approach
 
 ## Recommended source style
 

@@ -35,16 +35,33 @@ class Compilador:
         self.funciones:  Dict[str, object] = {}
         self.next_addr:  int = 0
         self.next_label: int = 0
+        self.scope_stack: List[Dict[str, int]] = [self.variables]
+        self.in_function: bool = False
 
     def _nueva_etiqueta(self, prefijo='L') -> str:
         self.next_label += 1
         return f"{prefijo}{self.next_label}"
 
-    def _addr(self, nombre: str) -> int:
-        if nombre not in self.variables:
-            self.variables[nombre] = self.next_addr
+    def _alloc_addr(self, scope: Dict[str, int], nombre: str) -> int:
+        if nombre not in scope:
+            scope[nombre] = self.next_addr
             self.next_addr += 1
-        return self.variables[nombre]
+        return scope[nombre]
+
+    def _scope_actual(self) -> Dict[str, int]:
+        return self.scope_stack[-1]
+
+    def _addr_lectura(self, nombre: str) -> int:
+        if self.in_function:
+            for scope in reversed(self.scope_stack[1:]):
+                if nombre in scope:
+                    return scope[nombre]
+        return self._alloc_addr(self.variables, nombre)
+
+    def _addr_escritura(self, nombre: str) -> int:
+        if self.in_function:
+            return self._alloc_addr(self._scope_actual(), nombre)
+        return self._alloc_addr(self.variables, nombre)
 
     def _emit(self, op, dest=None, src1=None,
               src2=None, label=None):
@@ -61,7 +78,7 @@ class Compilador:
 
         if isinstance(nodo, NodoID):
             self._emit(Operacion.LOAD_M, reg,
-                       str(self._addr(nodo.nombre)))
+                       str(self._addr_lectura(nodo.nombre)))
             return reg
 
         if isinstance(nodo, NodoUnOp):
@@ -133,7 +150,7 @@ class Compilador:
         if isinstance(nodo, NodoAsignar):
             self.compilar_expr(nodo.expr, 'R0')
             self._emit(Operacion.STORE, None, 'R0',
-                       str(self._addr(nodo.nombre)))
+                       str(self._addr_escritura(nodo.nombre)))
 
         elif isinstance(nodo, NodoPrint):
             self.compilar_expr(nodo.expr, 'R0')
@@ -179,10 +196,14 @@ class Compilador:
             self._emit(Operacion.JMP, None, etq_saltar)
             primera = True
             regs_args = ['R0', 'R1', 'R2', 'R3']
+            local_scope: Dict[str, int] = {}
+            self.scope_stack.append(local_scope)
+            self.in_function = True
+
             for i, param in enumerate(nodo.params[:4]):
                 prev_len = len(self.codigo)
                 self._emit(Operacion.STORE, None, regs_args[i],
-                           str(self._addr(param)))
+                           str(self._addr_escritura(param)))
                 if primera:
                     self.codigo[prev_len].label = nodo.nombre
                     primera = False
@@ -199,6 +220,9 @@ class Compilador:
                     if primera and len(self.codigo) > prev_len:
                         self.codigo[prev_len].label = nodo.nombre
                         primera = False
+
+            self.scope_stack.pop()
+            self.in_function = False
             self._emit(Operacion.RET)
             self.codigo.append(
                 Instruccion(Operacion.LOAD, 'R3', '0',

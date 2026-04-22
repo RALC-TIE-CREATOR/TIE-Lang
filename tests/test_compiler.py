@@ -5,7 +5,7 @@ Tests del compilador TIE-Lang v1.0.
 Verifica el pipeline completo:
     fuente → Lexer → Parser → AST → Compilador → CPU
 
-Programas verificados: 7/7 correctos.
+Programas verificados: 10/10 correctos.
 """
 
 import sys
@@ -155,6 +155,69 @@ print 7 >= 7
     print()
 
 
+def test_scope_local_shadowing():
+    """P8: Los locales de función sombrean globals sin mutarlos."""
+    print("── P8: Scope local/shadowing ────────────")
+    resultado = compile_and_run("""
+let x = 2
+
+def doble_local(x):
+    let y = x + x
+    return y
+
+print doble_local(5)
+print x
+""", titulo="P8", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [10, 2]
+    print(f"  Salida: {salida}  esperado=[10, 2]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
+def test_scope_global_read():
+    """P9: Una función puede leer globals si no hay local con ese nombre."""
+    print("── P9: Scope lectura global ─────────────")
+    resultado = compile_and_run("""
+let base = 3
+
+def sumar_base(n):
+    let z = n + base
+    return z
+
+print sumar_base(4)
+print base
+""", titulo="P9", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [7, 3]
+    print(f"  Salida: {salida}  esperado=[7, 3]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
+def test_scope_locals_do_not_leak():
+    """P10: Variables locales no contaminan la RAM global visible por nombre."""
+    print("── P10: Scope sin fuga local ────────────")
+    resultado = compile_and_run("""
+let a = 1
+
+def crear_local(n):
+    let temp = n + 1
+    return temp
+
+print crear_local(6)
+print a
+""", titulo="P10", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [7, 1]
+    print(f"  Salida: {salida}  esperado=[7, 1]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
 if __name__ == "__main__":
     print("=" * 50)
     print("  TIE-Lang — Tests: Compilador v1.0")
@@ -167,4 +230,7 @@ if __name__ == "__main__":
     test_funcion_con_if()
     test_funcion_con_comas()
     test_comparadores()
-    print("✅ Compilador completo — 7/7 programas correctos")
+    test_scope_local_shadowing()
+    test_scope_global_read()
+    test_scope_locals_do_not_leak()
+    print("✅ Compilador completo — 10/10 programas correctos")

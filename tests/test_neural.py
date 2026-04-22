@@ -8,7 +8,12 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from neural import TopologicalPerceptron, train_boolean_model
+from neural import (
+    TopologicalMLP,
+    TopologicalPerceptron,
+    build_xor_model,
+    train_boolean_model,
+)
 
 
 def test_and_perceptron():
@@ -67,6 +72,28 @@ def test_manual_training_converges():
     print()
 
 
+def test_xor_mlp():
+    print("── NEURAL: XOR MLP ──────────────────────")
+    model = build_xor_model()
+    assert isinstance(model, TopologicalMLP)
+
+    casos = [
+        ([0, 0], 0),
+        ([0, 1], 1),
+        ([1, 0], 1),
+        ([1, 1], 0),
+    ]
+    for inputs, esperado in casos:
+        hidden = model.hidden_state(inputs)
+        salida = model.predict(inputs)
+        ok = salida == esperado
+        print(
+            f"  XOR{tuple(inputs)} = {salida}  hidden={hidden}  esp={esperado}  {'✅' if ok else '❌'}"
+        )
+        assert ok
+    print()
+
+
 if __name__ == "__main__":
     print("=" * 45)
     print("  TIE-Lang — Tests: Neural")
@@ -75,4 +102,5 @@ if __name__ == "__main__":
     test_and_perceptron()
     test_or_perceptron()
     test_manual_training_converges()
+    test_xor_mlp()
     print("✅ Capa neural experimental verificada")

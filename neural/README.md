@@ -15,8 +15,10 @@ sino demostrar que el proyecto ya puede extenderse desde:
 La implementación inicial incluye:
 
 - `TopologicalPerceptron`
+- `TopologicalMLP`
 - entrenamiento binario sobre compuertas linealmente separables
-- pruebas reproducibles para `AND` y `OR`
+- una red mínima para `XOR`
+- pruebas reproducibles para `AND`, `OR` y `XOR`
 
 ## Idea
 
@@ -27,12 +29,16 @@ de TIE: pesos robustos, discretos y resistentes a degradación accidental.
 ## Uso rápido
 
 ```python
-from neural import train_boolean_model
+from neural import build_xor_model, train_boolean_model
 
 model = train_boolean_model("AND")
 print(model.weights, model.bias)
 print(model.predict([1, 1]))  # 1
 print(model.predict([0, 1]))  # 0
+
+xor = build_xor_model()
+print(xor.predict([0, 1]))  # 1
+print(xor.predict([1, 1]))  # 0
 ```
 
 ## Alcance
@@ -40,7 +46,6 @@ print(model.predict([0, 1]))  # 0
 Esto es una base mínima, no una capa neural completa.
 Los siguientes pasos naturales serían:
 
-- perceptrón multicapa
 - datasets más ricos
 - visualización del aprendizaje
 - conexión explícita con pesos topológicos persistentes en la infraestructura

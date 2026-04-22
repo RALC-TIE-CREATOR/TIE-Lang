@@ -78,6 +78,26 @@ class TopologicalPerceptron:
         }
 
 
+@dataclass
+class TopologicalMLP:
+    """
+    Red multicapa mínima con una sola capa oculta.
+
+    Cada neurona sigue siendo un perceptrón topológico discreto.
+    Esta clase permite expresar composiciones no linealmente separables
+    como XOR usando varias neuronas binarias simples.
+    """
+
+    hidden_layer: list[TopologicalPerceptron]
+    output_neuron: TopologicalPerceptron
+
+    def hidden_state(self, inputs: list[int]) -> list[int]:
+        return [neuron.predict(inputs) for neuron in self.hidden_layer]
+
+    def predict(self, inputs: list[int]) -> int:
+        return self.output_neuron.predict(self.hidden_state(inputs))
+
+
 def train_boolean_model(
     gate: str,
     epochs: int = 20,
@@ -104,3 +124,33 @@ def train_boolean_model(
     model = TopologicalPerceptron(input_size=2)
     model.train(datasets[gate], epochs=epochs)
     return model
+
+
+def build_xor_model() -> TopologicalMLP:
+    """
+    Construye un XOR mínimo usando una capa oculta de dos perceptrones.
+
+    Estructura clásica:
+    - neurona 1: OR
+    - neurona 2: NAND
+    - salida: AND(hidden_1, hidden_2)
+    """
+    hidden_or = TopologicalPerceptron(
+        input_size=2,
+        weights=[1, 1],
+        bias=0,
+    )
+    hidden_nand = TopologicalPerceptron(
+        input_size=2,
+        weights=[-2, -2],
+        bias=3,
+    )
+    output_and = TopologicalPerceptron(
+        input_size=2,
+        weights=[2, 2],
+        bias=-3,
+    )
+    return TopologicalMLP(
+        hidden_layer=[hidden_or, hidden_nand],
+        output_neuron=output_and,
+    )

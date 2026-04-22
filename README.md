@@ -165,8 +165,9 @@ See `docs/spec.md` for the technical reference and
 - `compiler/`: lexer, parser, compiler, runner
 - `core/`: topological logic and arithmetic primitives
 - `cpu/`: 4-bit virtual CPU and memory
+- `neural/`: experimental neural/topological learning layer
 - `examples/`: canonical `.tie` programs
-- `tests/`: verification suites for compiler, CPU, ALU, runner and CLI
+- `tests/`: verification suites for compiler, CPU, ALU, runner, CLI and neural layer
 
 ## Current limits
 
@@ -192,6 +193,9 @@ Near-term work after `v0.1.0`:
 - improve public demos and release presentation
 - expand the language beyond the current 4-bit baseline
 - evaluate the next major layer: neural/topological learning components
+
+Experimental neural groundwork is now present in `neural/`
+as a minimal topological perceptron baseline.
 
 ## Theoretical foundation
 

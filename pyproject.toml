@@ -27,4 +27,4 @@ tie = "compiler.run:main"
 include-package-data = true
 
 [tool.setuptools.packages.find]
-include = ["compiler*", "core*", "cpu*"]
+include = ["compiler*", "core*", "cpu*", "neural*"]

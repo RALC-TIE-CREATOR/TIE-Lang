@@ -11,11 +11,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from neural import (
     TopologicalMLP,
     TopologicalPerceptron,
+    TrainableTopologicalMLP,
     build_xor_model,
     render_error_history,
     render_parameter_history,
     render_training_report,
     train_boolean_model,
+    train_xor_mlp,
 )
 
 
@@ -127,6 +129,31 @@ def test_training_visualization():
     print()
 
 
+def test_trainable_xor_mlp():
+    print("── NEURAL: XOR entrenable ───────────────")
+    model = train_xor_mlp(epochs=4000, learning_rate=0.7, seed=7)
+    assert isinstance(model, TrainableTopologicalMLP)
+
+    casos = [
+        ([0, 0], 0),
+        ([0, 1], 1),
+        ([1, 0], 1),
+        ([1, 1], 0),
+    ]
+    resultados = []
+    for inputs, esperado in casos:
+        proba = model.predict_proba(inputs)
+        salida = model.predict(inputs)
+        resultados.append(salida)
+        ok = salida == esperado
+        print(
+            f"  XOR{tuple(inputs)} = {salida}  p={proba:.4f}  esp={esperado}  {'✅' if ok else '❌'}"
+        )
+        assert ok
+    assert resultados == [0, 1, 1, 0]
+    print()
+
+
 if __name__ == "__main__":
     print("=" * 45)
     print("  TIE-Lang — Tests: Neural")
@@ -137,4 +164,5 @@ if __name__ == "__main__":
     test_manual_training_converges()
     test_xor_mlp()
     test_training_visualization()
+    test_trainable_xor_mlp()
     print("✅ Capa neural experimental verificada")

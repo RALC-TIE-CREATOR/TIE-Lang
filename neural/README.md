@@ -16,8 +16,10 @@ La implementación inicial incluye:
 
 - `TopologicalPerceptron`
 - `TopologicalMLP`
+- `TrainableTopologicalMLP`
 - entrenamiento binario sobre compuertas linealmente separables
 - una red mínima para `XOR`
+- entrenamiento real de una red multicapa mínima para `XOR`
 - historial de entrenamiento por época
 - visualización textual de error, pesos y sesgo
 - pruebas reproducibles para `AND`, `OR` y `XOR`
@@ -34,6 +36,7 @@ de TIE: pesos robustos, discretos y resistentes a degradación accidental.
 from neural import (
     build_xor_model,
     render_training_report,
+    train_xor_mlp,
     train_boolean_model,
 )
 
@@ -51,6 +54,10 @@ print(render_training_report(training))
 xor = build_xor_model()
 print(xor.predict([0, 1]))  # 1
 print(xor.predict([1, 1]))  # 0
+
+mlp = train_xor_mlp()
+print(mlp.predict([0, 1]))  # 1
+print(mlp.predict([1, 1]))  # 0
 ```
 
 ## Alcance
@@ -59,5 +66,5 @@ Esto es una base mínima, no una capa neural completa.
 Los siguientes pasos naturales serían:
 
 - datasets más ricos
-- entrenamiento multicapa real
+- visualización de entrenamiento multicapa
 - conexión explícita con pesos topológicos persistentes en la infraestructura

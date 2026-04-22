@@ -1,13 +1,13 @@
 # TIE-Lang
 
-**Topological Infrastructure Language** — 
-A programming language where computation is 
-implemented through topological phase vortices 
+**Topological Infrastructure Language** —
+A programming language where computation is
+implemented through topological phase vortices
 in a discrete sine-Gordon network.
 
 ## What is this?
 
-TIE-Lang is based on the Spatial Infrastructure 
+TIE-Lang is based on the Spatial Infrastructure
 Theory (TIE/SIT). The core insight:
 
 > Matter is not a deformation of space.
@@ -79,6 +79,8 @@ Run a `.tie` file directly:
 ```bash
 tie examples/fibonacci.tie
 tie examples/funciones.tie
+tie --list-examples
+tie --version
 python -m compiler.run examples/fibonacci.tie
 python -m compiler.run examples/fibonacci.tie --asm
 python tie.py examples/fibonacci.tie
@@ -101,6 +103,15 @@ tie examples/fibonacci.tie
 
 `tie` is the primary public command for TIE-Lang.
 `python -m compiler.run` and `python tie.py` remain supported execution paths.
+
+Useful CLI commands:
+
+```bash
+tie --help
+tie --version
+tie --list-examples
+tie examples
+```
 
 ## Syntax notes
 
@@ -194,12 +205,13 @@ Apache License 2.0. See `LICENSE`.
 ## Authors
 
 - R@LC — Theory and concept
+- Claude (Anthropic) — Implementation partner
 
 ## Next: Neural Networks
 
 Topological weights cannot be corrupted by noise.
 A neural network where weights are vortices N
-would be inherently noise-immune without 
+would be inherently noise-immune without
 error correction overhead.
 
 See `neural/` directory.

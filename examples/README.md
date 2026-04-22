@@ -19,6 +19,8 @@ compile_and_run(fuente, titulo="Fibonacci")
 O desde CLI:
 
 ```bash
+tie --list-examples
+tie examples
 python -m compiler.run examples/fibonacci.tie
 python tie.py examples/fibonacci.tie
 ```

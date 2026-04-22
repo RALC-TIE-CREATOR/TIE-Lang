@@ -15,7 +15,7 @@ keywords = ["programming-language", "topology", "tie", "cpu", "compiler"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "License :: Other/Proprietary License",
+  "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent",
   "Topic :: Software Development :: Compilers",
 ]

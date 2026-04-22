@@ -1,12 +1,16 @@
 from .perceptron import (
     BOOLEAN_DATASETS,
+    NUMERIC_DATASETS,
     TopologicalMLP,
     TopologicalPerceptron,
     TrainableTopologicalMLP,
     build_xor_model,
+    get_dataset,
     get_boolean_dataset,
+    get_numeric_dataset,
     train_boolean_model,
     train_dataset_mlp,
+    train_numeric_perceptron,
     train_xor_mlp,
 )
 from .visualization import (

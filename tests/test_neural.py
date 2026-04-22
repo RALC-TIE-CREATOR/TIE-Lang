@@ -10,16 +10,20 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from neural import (
     BOOLEAN_DATASETS,
+    NUMERIC_DATASETS,
     TopologicalMLP,
     TopologicalPerceptron,
     TrainableTopologicalMLP,
     build_xor_model,
+    get_dataset,
     get_boolean_dataset,
+    get_numeric_dataset,
     render_error_history,
     render_parameter_history,
     render_training_report,
     train_boolean_model,
     train_dataset_mlp,
+    train_numeric_perceptron,
     train_xor_mlp,
 )
 
@@ -62,13 +66,22 @@ def test_or_perceptron():
 
 def test_dataset_registry():
     print("── NEURAL: Datasets ─────────────────────")
-    nombres = sorted(BOOLEAN_DATASETS)
-    ok = "MAJORITY3" in nombres and "PARITY3" in nombres
-    print(f"  Disponibles: {', '.join(nombres)}")
+    nombres_booleanos = sorted(BOOLEAN_DATASETS)
+    nombres_numericos = sorted(NUMERIC_DATASETS)
+    ok = (
+        "MAJORITY3" in nombres_booleanos
+        and "PARITY3" in nombres_booleanos
+        and "PLANE2D" in nombres_numericos
+        and "PEAK3" in nombres_numericos
+    )
+    print(f"  Booleanos: {', '.join(nombres_booleanos)}")
+    print(f"  Numéricos: {', '.join(nombres_numericos)}")
     print(f"  Registro extendido: {'✅' if ok else '❌'}")
     assert ok
     assert len(get_boolean_dataset("MAJORITY3")) == 8
     assert len(get_boolean_dataset("PARITY3")) == 8
+    assert len(get_numeric_dataset("PLANE2D")) == 8
+    assert len(get_numeric_dataset("PEAK3")) == 8
     print()
 
 
@@ -103,6 +116,22 @@ def test_majority3_perceptron():
         ok = salida == esperado
         print(
             f"  MAJ{tuple(inputs)} = {salida}  esp={esperado}  {'✅' if ok else '❌'}"
+        )
+        assert ok
+    print()
+
+
+def test_plane2d_perceptron():
+    print("── NEURAL: PLANE2D ──────────────────────")
+    model = train_numeric_perceptron("PLANE2D", epochs=40, learning_rate=0.5)
+
+    casos = get_numeric_dataset("PLANE2D")
+    for inputs, esperado in casos:
+        salida = model.predict(inputs)
+        score = model.raw_score(inputs)
+        ok = salida == esperado
+        print(
+            f"  P2D{tuple(inputs)} = {salida}  s={score:.3f}  esp={esperado}  {'✅' if ok else '❌'}"
         )
         assert ok
     print()
@@ -211,6 +240,33 @@ def test_parity3_trainable_mlp():
     print()
 
 
+def test_peak3_trainable_mlp():
+    print("── NEURAL: PEAK3 entrenable ─────────────")
+    model = train_dataset_mlp(
+        "PEAK3",
+        epochs=8000,
+        learning_rate=0.7,
+        seed=17,
+        hidden_size=5,
+        attempts=10,
+    )
+    assert isinstance(model, TrainableTopologicalMLP)
+
+    casos = get_dataset("PEAK3")
+    resultados = []
+    for inputs, esperado in casos:
+        proba = model.predict_proba(inputs)
+        salida = model.predict(inputs)
+        resultados.append(salida)
+        ok = salida == esperado
+        print(
+            f"  PEAK{tuple(inputs)} = {salida}  p={proba:.4f}  esp={esperado}  {'✅' if ok else '❌'}"
+        )
+        assert ok
+    assert resultados == [esperado for _, esperado in casos]
+    print()
+
+
 if __name__ == "__main__":
     print("=" * 45)
     print("  TIE-Lang — Tests: Neural")
@@ -221,8 +277,10 @@ if __name__ == "__main__":
     test_dataset_registry()
     test_manual_training_converges()
     test_majority3_perceptron()
+    test_plane2d_perceptron()
     test_xor_mlp()
     test_training_visualization()
     test_trainable_xor_mlp()
     test_parity3_trainable_mlp()
+    test_peak3_trainable_mlp()
     print("✅ Capa neural experimental verificada")

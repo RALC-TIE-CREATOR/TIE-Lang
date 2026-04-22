@@ -13,7 +13,7 @@ import math
 import random
 
 
-BOOLEAN_DATASETS: dict[str, list[tuple[list[int], int]]] = {
+BOOLEAN_DATASETS: dict[str, list[tuple[list[float], int]]] = {
     "AND": [
         ([0, 0], 0),
         ([0, 1], 0),
@@ -54,8 +54,31 @@ BOOLEAN_DATASETS: dict[str, list[tuple[list[int], int]]] = {
     ],
 }
 
+NUMERIC_DATASETS: dict[str, list[tuple[list[float], int]]] = {
+    "PLANE2D": [
+        ([-2.0, -1.0], 0),
+        ([-1.5, 0.0], 0),
+        ([-0.5, -0.5], 0),
+        ([0.5, -1.0], 0),
+        ([0.5, 0.75], 1),
+        ([1.0, 0.25], 1),
+        ([1.5, 1.0], 1),
+        ([2.0, 0.5], 1),
+    ],
+    "PEAK3": [
+        ([0.0, 1.0, 0.0], 1),
+        ([0.1, 0.9, 0.2], 1),
+        ([0.2, 0.8, 0.1], 1),
+        ([0.0, 0.7, 0.0], 1),
+        ([0.9, 0.2, 0.8], 0),
+        ([0.8, 0.1, 0.9], 0),
+        ([0.1, 0.3, 0.9], 0),
+        ([0.9, 0.4, 0.1], 0),
+    ],
+}
 
-def _dot(a: list[int], b: list[int]) -> int:
+
+def _dot(a: list[float], b: list[float]) -> float:
     return sum(x * y for x, y in zip(a, b))
 
 
@@ -78,9 +101,9 @@ class TopologicalPerceptron:
     """
 
     input_size: int
-    learning_rate: int = 1
-    weights: list[int] = field(default_factory=list)
-    bias: int = 0
+    learning_rate: float = 1
+    weights: list[float] = field(default_factory=list)
+    bias: float = 0
 
     def __post_init__(self):
         if not self.weights:
@@ -88,15 +111,15 @@ class TopologicalPerceptron:
         if len(self.weights) != self.input_size:
             raise ValueError("weights debe tener el mismo tamaño que input_size")
 
-    def raw_score(self, inputs: list[int]) -> int:
+    def raw_score(self, inputs: list[float]) -> float:
         if len(inputs) != self.input_size:
             raise ValueError("entrada con tamaño inválido")
         return _dot(self.weights, inputs) + self.bias
 
-    def predict(self, inputs: list[int]) -> int:
+    def predict(self, inputs: list[float]) -> int:
         return 1 if self.raw_score(inputs) > 0 else 0
 
-    def train_step(self, inputs: list[int], expected: int) -> int:
+    def train_step(self, inputs: list[float], expected: int) -> float:
         predicted = self.predict(inputs)
         error = expected - predicted
 
@@ -109,10 +132,10 @@ class TopologicalPerceptron:
 
     def train(
         self,
-        samples: list[tuple[list[int], int]],
+        samples: list[tuple[list[float], int]],
         epochs: int = 20,
     ) -> dict:
-        history: list[int] = []
+        history: list[float] = []
         epochs_detail: list[dict] = []
 
         for epoch in range(epochs):
@@ -153,10 +176,10 @@ class TopologicalMLP:
     hidden_layer: list[TopologicalPerceptron]
     output_neuron: TopologicalPerceptron
 
-    def hidden_state(self, inputs: list[int]) -> list[int]:
+    def hidden_state(self, inputs: list[float]) -> list[int]:
         return [neuron.predict(inputs) for neuron in self.hidden_layer]
 
-    def predict(self, inputs: list[int]) -> int:
+    def predict(self, inputs: list[float]) -> int:
         return self.output_neuron.predict(self.hidden_state(inputs))
 
 
@@ -201,7 +224,7 @@ class TrainableTopologicalMLP:
         if len(self.output_weights) != self.hidden_size:
             raise ValueError("output_weights debe coincidir con hidden_size")
 
-    def forward(self, inputs: list[int]) -> dict:
+    def forward(self, inputs: list[float]) -> dict:
         if len(inputs) != self.input_size:
             raise ValueError("entrada con tamaño inválido")
 
@@ -221,13 +244,13 @@ class TrainableTopologicalMLP:
             "output": output,
         }
 
-    def predict_proba(self, inputs: list[int]) -> float:
+    def predict_proba(self, inputs: list[float]) -> float:
         return self.forward(inputs)["output"]
 
-    def predict(self, inputs: list[int]) -> int:
+    def predict(self, inputs: list[float]) -> int:
         return 1 if self.predict_proba(inputs) >= 0.5 else 0
 
-    def train_step(self, inputs: list[int], expected: int) -> float:
+    def train_step(self, inputs: list[float], expected: int) -> float:
         state = self.forward(inputs)
         output = state["output"]
         hidden = state["hidden"]
@@ -253,7 +276,7 @@ class TrainableTopologicalMLP:
 
     def train(
         self,
-        samples: list[tuple[list[int], int]],
+        samples: list[tuple[list[float], int]],
         epochs: int = 2000,
     ) -> dict:
         history: list[float] = []
@@ -295,12 +318,30 @@ class TrainableTopologicalMLP:
         }
 
 
-def get_boolean_dataset(name: str) -> list[tuple[list[int], int]]:
+def get_boolean_dataset(name: str) -> list[tuple[list[float], int]]:
     dataset_name = name.upper()
     if dataset_name not in BOOLEAN_DATASETS:
         disponibles = ", ".join(sorted(BOOLEAN_DATASETS))
         raise ValueError(f"dataset desconocido: {name}. Disponibles: {disponibles}")
     return [(list(inputs), expected) for inputs, expected in BOOLEAN_DATASETS[dataset_name]]
+
+
+def get_numeric_dataset(name: str) -> list[tuple[list[float], int]]:
+    dataset_name = name.upper()
+    if dataset_name not in NUMERIC_DATASETS:
+        disponibles = ", ".join(sorted(NUMERIC_DATASETS))
+        raise ValueError(f"dataset desconocido: {name}. Disponibles: {disponibles}")
+    return [(list(inputs), expected) for inputs, expected in NUMERIC_DATASETS[dataset_name]]
+
+
+def get_dataset(name: str) -> list[tuple[list[float], int]]:
+    dataset_name = name.upper()
+    if dataset_name in BOOLEAN_DATASETS:
+        return get_boolean_dataset(dataset_name)
+    if dataset_name in NUMERIC_DATASETS:
+        return get_numeric_dataset(dataset_name)
+    disponibles = ", ".join(sorted([*BOOLEAN_DATASETS.keys(), *NUMERIC_DATASETS.keys()]))
+    raise ValueError(f"dataset desconocido: {name}. Disponibles: {disponibles}")
 
 
 def train_boolean_model(
@@ -309,6 +350,20 @@ def train_boolean_model(
 ) -> TopologicalPerceptron:
     samples = get_boolean_dataset(gate)
     model = TopologicalPerceptron(input_size=len(samples[0][0]))
+    model.train(samples, epochs=epochs)
+    return model
+
+
+def train_numeric_perceptron(
+    name: str,
+    epochs: int = 40,
+    learning_rate: float = 0.5,
+) -> TopologicalPerceptron:
+    samples = get_numeric_dataset(name)
+    model = TopologicalPerceptron(
+        input_size=len(samples[0][0]),
+        learning_rate=learning_rate,
+    )
     model.train(samples, epochs=epochs)
     return model
 
@@ -388,7 +443,7 @@ def train_dataset_mlp(
     hidden_size: int = 4,
     attempts: int = 8,
 ) -> TrainableTopologicalMLP:
-    samples = get_boolean_dataset(name)
+    samples = get_dataset(name)
     expected_outputs = [expected for _, expected in samples]
     best_score = -1
 

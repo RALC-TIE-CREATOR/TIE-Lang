@@ -12,6 +12,9 @@ from neural import (
     TopologicalMLP,
     TopologicalPerceptron,
     build_xor_model,
+    render_error_history,
+    render_parameter_history,
+    render_training_report,
     train_boolean_model,
 )
 
@@ -69,6 +72,7 @@ def test_manual_training_converges():
     print(f"  Historial: {resultado['history']}")
     print(f"  Convergió: {'✅' if ok else '❌'}")
     assert ok
+    assert len(resultado["epochs"]) == resultado["epochs_ran"]
     print()
 
 
@@ -94,6 +98,35 @@ def test_xor_mlp():
     print()
 
 
+def test_training_visualization():
+    print("── NEURAL: Visualización ────────────────")
+    model = TopologicalPerceptron(input_size=2)
+    resultado = model.train(
+        [
+            ([0, 0], 0),
+            ([0, 1], 1),
+            ([1, 0], 1),
+            ([1, 1], 1),
+        ],
+        epochs=20,
+    )
+
+    error_view = render_error_history(resultado)
+    param_view = render_parameter_history(resultado)
+    report = render_training_report(resultado)
+
+    ok = (
+        "Error history:" in error_view
+        and "Parameter history:" in param_view
+        and "epoch" in report
+    )
+    print(error_view)
+    print(param_view)
+    print(f"  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
 if __name__ == "__main__":
     print("=" * 45)
     print("  TIE-Lang — Tests: Neural")
@@ -103,4 +136,5 @@ if __name__ == "__main__":
     test_or_perceptron()
     test_manual_training_converges()
     test_xor_mlp()
+    test_training_visualization()
     print("✅ Capa neural experimental verificada")

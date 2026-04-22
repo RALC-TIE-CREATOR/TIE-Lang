@@ -18,6 +18,8 @@ La implementación inicial incluye:
 - `TopologicalMLP`
 - entrenamiento binario sobre compuertas linealmente separables
 - una red mínima para `XOR`
+- historial de entrenamiento por época
+- visualización textual de error, pesos y sesgo
 - pruebas reproducibles para `AND`, `OR` y `XOR`
 
 ## Idea
@@ -29,12 +31,22 @@ de TIE: pesos robustos, discretos y resistentes a degradación accidental.
 ## Uso rápido
 
 ```python
-from neural import build_xor_model, train_boolean_model
+from neural import (
+    build_xor_model,
+    render_training_report,
+    train_boolean_model,
+)
 
 model = train_boolean_model("AND")
 print(model.weights, model.bias)
 print(model.predict([1, 1]))  # 1
 print(model.predict([0, 1]))  # 0
+
+training = model.train(
+    [([0, 0], 0), ([0, 1], 1), ([1, 0], 1), ([1, 1], 1)],
+    epochs=10,
+)
+print(render_training_report(training))
 
 xor = build_xor_model()
 print(xor.predict([0, 1]))  # 1
@@ -47,5 +59,5 @@ Esto es una base mínima, no una capa neural completa.
 Los siguientes pasos naturales serían:
 
 - datasets más ricos
-- visualización del aprendizaje
+- entrenamiento multicapa real
 - conexión explícita con pesos topológicos persistentes en la infraestructura

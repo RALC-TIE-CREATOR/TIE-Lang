@@ -61,18 +61,28 @@ class TopologicalPerceptron:
         epochs: int = 20,
     ) -> dict:
         history: list[int] = []
+        epochs_detail: list[dict] = []
 
-        for _ in range(epochs):
+        for epoch in range(epochs):
             total_error = 0
             for inputs, expected in samples:
                 total_error += abs(self.train_step(inputs, expected))
             history.append(total_error)
+            epochs_detail.append(
+                {
+                    "epoch": epoch + 1,
+                    "error": total_error,
+                    "weights": list(self.weights),
+                    "bias": self.bias,
+                }
+            )
             if total_error == 0:
                 break
 
         return {
             "epochs_ran": len(history),
             "history": history,
+            "epochs": epochs_detail,
             "weights": list(self.weights),
             "bias": self.bias,
         }

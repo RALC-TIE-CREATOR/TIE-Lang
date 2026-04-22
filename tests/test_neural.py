@@ -9,14 +9,17 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from neural import (
+    BOOLEAN_DATASETS,
     TopologicalMLP,
     TopologicalPerceptron,
     TrainableTopologicalMLP,
     build_xor_model,
+    get_boolean_dataset,
     render_error_history,
     render_parameter_history,
     render_training_report,
     train_boolean_model,
+    train_dataset_mlp,
     train_xor_mlp,
 )
 
@@ -57,6 +60,18 @@ def test_or_perceptron():
     print()
 
 
+def test_dataset_registry():
+    print("── NEURAL: Datasets ─────────────────────")
+    nombres = sorted(BOOLEAN_DATASETS)
+    ok = "MAJORITY3" in nombres and "PARITY3" in nombres
+    print(f"  Disponibles: {', '.join(nombres)}")
+    print(f"  Registro extendido: {'✅' if ok else '❌'}")
+    assert ok
+    assert len(get_boolean_dataset("MAJORITY3")) == 8
+    assert len(get_boolean_dataset("PARITY3")) == 8
+    print()
+
+
 def test_manual_training_converges():
     print("── NEURAL: Convergencia ─────────────────")
     model = TopologicalPerceptron(input_size=2)
@@ -75,6 +90,21 @@ def test_manual_training_converges():
     print(f"  Convergió: {'✅' if ok else '❌'}")
     assert ok
     assert len(resultado["epochs"]) == resultado["epochs_ran"]
+    print()
+
+
+def test_majority3_perceptron():
+    print("── NEURAL: MAJORITY3 ────────────────────")
+    model = train_boolean_model("MAJORITY3", epochs=30)
+
+    casos = get_boolean_dataset("MAJORITY3")
+    for inputs, esperado in casos:
+        salida = model.predict(inputs)
+        ok = salida == esperado
+        print(
+            f"  MAJ{tuple(inputs)} = {salida}  esp={esperado}  {'✅' if ok else '❌'}"
+        )
+        assert ok
     print()
 
 
@@ -154,6 +184,33 @@ def test_trainable_xor_mlp():
     print()
 
 
+def test_parity3_trainable_mlp():
+    print("── NEURAL: PARITY3 entrenable ───────────")
+    model = train_dataset_mlp(
+        "PARITY3",
+        epochs=8000,
+        learning_rate=0.7,
+        seed=11,
+        hidden_size=6,
+        attempts=10,
+    )
+    assert isinstance(model, TrainableTopologicalMLP)
+
+    casos = get_boolean_dataset("PARITY3")
+    resultados = []
+    for inputs, esperado in casos:
+        proba = model.predict_proba(inputs)
+        salida = model.predict(inputs)
+        resultados.append(salida)
+        ok = salida == esperado
+        print(
+            f"  PAR{tuple(inputs)} = {salida}  p={proba:.4f}  esp={esperado}  {'✅' if ok else '❌'}"
+        )
+        assert ok
+    assert resultados == [esperado for _, esperado in casos]
+    print()
+
+
 if __name__ == "__main__":
     print("=" * 45)
     print("  TIE-Lang — Tests: Neural")
@@ -161,8 +218,11 @@ if __name__ == "__main__":
     print()
     test_and_perceptron()
     test_or_perceptron()
+    test_dataset_registry()
     test_manual_training_converges()
+    test_majority3_perceptron()
     test_xor_mlp()
     test_training_visualization()
     test_trainable_xor_mlp()
+    test_parity3_trainable_mlp()
     print("✅ Capa neural experimental verificada")

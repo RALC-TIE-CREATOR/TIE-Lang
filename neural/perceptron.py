@@ -13,6 +13,48 @@ import math
 import random
 
 
+BOOLEAN_DATASETS: dict[str, list[tuple[list[int], int]]] = {
+    "AND": [
+        ([0, 0], 0),
+        ([0, 1], 0),
+        ([1, 0], 0),
+        ([1, 1], 1),
+    ],
+    "OR": [
+        ([0, 0], 0),
+        ([0, 1], 1),
+        ([1, 0], 1),
+        ([1, 1], 1),
+    ],
+    "NAND": [
+        ([0, 0], 1),
+        ([0, 1], 1),
+        ([1, 0], 1),
+        ([1, 1], 0),
+    ],
+    "MAJORITY3": [
+        ([0, 0, 0], 0),
+        ([0, 0, 1], 0),
+        ([0, 1, 0], 0),
+        ([1, 0, 0], 0),
+        ([0, 1, 1], 1),
+        ([1, 0, 1], 1),
+        ([1, 1, 0], 1),
+        ([1, 1, 1], 1),
+    ],
+    "PARITY3": [
+        ([0, 0, 0], 0),
+        ([0, 0, 1], 1),
+        ([0, 1, 0], 1),
+        ([0, 1, 1], 0),
+        ([1, 0, 0], 1),
+        ([1, 0, 1], 0),
+        ([1, 1, 0], 0),
+        ([1, 1, 1], 1),
+    ],
+}
+
+
 def _dot(a: list[int], b: list[int]) -> int:
     return sum(x * y for x, y in zip(a, b))
 
@@ -253,31 +295,21 @@ class TrainableTopologicalMLP:
         }
 
 
+def get_boolean_dataset(name: str) -> list[tuple[list[int], int]]:
+    dataset_name = name.upper()
+    if dataset_name not in BOOLEAN_DATASETS:
+        disponibles = ", ".join(sorted(BOOLEAN_DATASETS))
+        raise ValueError(f"dataset desconocido: {name}. Disponibles: {disponibles}")
+    return [(list(inputs), expected) for inputs, expected in BOOLEAN_DATASETS[dataset_name]]
+
+
 def train_boolean_model(
     gate: str,
     epochs: int = 20,
 ) -> TopologicalPerceptron:
-    gate = gate.upper()
-    datasets = {
-        "AND": [
-            ([0, 0], 0),
-            ([0, 1], 0),
-            ([1, 0], 0),
-            ([1, 1], 1),
-        ],
-        "OR": [
-            ([0, 0], 0),
-            ([0, 1], 1),
-            ([1, 0], 1),
-            ([1, 1], 1),
-        ],
-    }
-
-    if gate not in datasets:
-        raise ValueError("gate debe ser 'AND' o 'OR'")
-
-    model = TopologicalPerceptron(input_size=2)
-    model.train(datasets[gate], epochs=epochs)
+    samples = get_boolean_dataset(gate)
+    model = TopologicalPerceptron(input_size=len(samples[0][0]))
+    model.train(samples, epochs=epochs)
     return model
 
 
@@ -345,4 +377,35 @@ def train_xor_mlp(
 
     raise RuntimeError(
         f"no se logró convergencia XOR tras {attempts} intentos; mejor score={best_score}/4"
+    )
+
+
+def train_dataset_mlp(
+    name: str,
+    epochs: int = 4000,
+    learning_rate: float = 0.7,
+    seed: int = 7,
+    hidden_size: int = 4,
+    attempts: int = 8,
+) -> TrainableTopologicalMLP:
+    samples = get_boolean_dataset(name)
+    expected_outputs = [expected for _, expected in samples]
+    best_score = -1
+
+    for offset in range(attempts):
+        model = TrainableTopologicalMLP(
+            input_size=len(samples[0][0]),
+            hidden_size=hidden_size,
+            learning_rate=learning_rate,
+            seed=seed + offset,
+        )
+        model.train(samples, epochs=epochs)
+        preds = [model.predict(inputs) for inputs, _ in samples]
+        score = sum(int(pred == expected) for pred, expected in zip(preds, expected_outputs))
+        best_score = max(best_score, score)
+        if preds == expected_outputs:
+            return model
+
+    raise RuntimeError(
+        f"no se logró convergencia para {name} tras {attempts} intentos; mejor score={best_score}/{len(samples)}"
     )

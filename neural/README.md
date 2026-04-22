@@ -14,15 +14,17 @@ sino demostrar que el proyecto ya puede extenderse desde:
 
 La implementación inicial incluye:
 
+- `BOOLEAN_DATASETS`
 - `TopologicalPerceptron`
 - `TopologicalMLP`
 - `TrainableTopologicalMLP`
 - entrenamiento binario sobre compuertas linealmente separables
 - una red mínima para `XOR`
 - entrenamiento real de una red multicapa mínima para `XOR`
+- datasets más ricos como `MAJORITY3` y `PARITY3`
 - historial de entrenamiento por época
 - visualización textual de error, pesos y sesgo
-- pruebas reproducibles para `AND`, `OR` y `XOR`
+- pruebas reproducibles para `AND`, `OR`, `XOR`, `MAJORITY3` y `PARITY3`
 
 ## Idea
 
@@ -34,8 +36,10 @@ de TIE: pesos robustos, discretos y resistentes a degradación accidental.
 
 ```python
 from neural import (
+    get_boolean_dataset,
     build_xor_model,
     render_training_report,
+    train_dataset_mlp,
     train_xor_mlp,
     train_boolean_model,
 )
@@ -58,6 +62,14 @@ print(xor.predict([1, 1]))  # 0
 mlp = train_xor_mlp()
 print(mlp.predict([0, 1]))  # 1
 print(mlp.predict([1, 1]))  # 0
+
+majority = train_boolean_model("MAJORITY3")
+print(majority.predict([1, 1, 0]))  # 1
+print(majority.predict([1, 0, 0]))  # 0
+
+parity = train_dataset_mlp("PARITY3", hidden_size=6)
+for inputs, esperado in get_boolean_dataset("PARITY3"):
+    print(inputs, parity.predict(inputs), esperado)
 ```
 
 ## Alcance
@@ -65,6 +77,6 @@ print(mlp.predict([1, 1]))  # 0
 Esto es una base mínima, no una capa neural completa.
 Los siguientes pasos naturales serían:
 
-- datasets más ricos
 - visualización de entrenamiento multicapa
+- pequeños datasets geométricos o temporales
 - conexión explícita con pesos topológicos persistentes en la infraestructura

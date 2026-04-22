@@ -25,7 +25,7 @@ La implementación inicial incluye:
 - datasets más ricos como `MAJORITY3` y `PARITY3`
 - pequeños datasets geométricos y temporales como `PLANE2D` y `PEAK3`
 - historial de entrenamiento por época
-- visualización textual de error, pesos y sesgo
+- visualización textual de error, pesos y sesgo para perceptrón y MLP
 - pruebas reproducibles para lógica, geometría 2D y secuencias temporales cortas
 
 ## Idea
@@ -41,6 +41,7 @@ from neural import (
     get_dataset,
     get_boolean_dataset,
     build_xor_model,
+    render_mlp_parameter_history,
     render_training_report,
     train_dataset_mlp,
     train_numeric_perceptron,
@@ -82,6 +83,10 @@ print(plane.predict([-1.0, -0.5]))  # 0
 peak = train_dataset_mlp("PEAK3", hidden_size=5)
 for inputs, esperado in get_dataset("PEAK3"):
     print(inputs, peak.predict(inputs), esperado)
+
+peak_training = peak.train(get_dataset("PEAK3"), epochs=20)
+print(render_training_report(peak_training))
+print(render_mlp_parameter_history(peak_training))
 ```
 
 ## Alcance
@@ -89,6 +94,5 @@ for inputs, esperado in get_dataset("PEAK3"):
 Esto es una base mínima, no una capa neural completa.
 Los siguientes pasos naturales serían:
 
-- visualización de entrenamiento multicapa
 - datasets más grandes y ruido controlado
 - conexión explícita con pesos topológicos persistentes en la infraestructura

@@ -15,6 +15,7 @@ from .perceptron import (
 )
 from .visualization import (
     render_error_history,
+    render_mlp_parameter_history,
     render_parameter_history,
     render_training_report,
 )

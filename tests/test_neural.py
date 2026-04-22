@@ -19,6 +19,7 @@ from neural import (
     get_boolean_dataset,
     get_numeric_dataset,
     render_error_history,
+    render_mlp_parameter_history,
     render_parameter_history,
     render_training_report,
     train_boolean_model,
@@ -267,6 +268,34 @@ def test_peak3_trainable_mlp():
     print()
 
 
+def test_multilayer_visualization():
+    print("── NEURAL: Visualización MLP ────────────")
+    samples = get_dataset("PEAK3")
+    model = TrainableTopologicalMLP(
+        input_size=3,
+        hidden_size=5,
+        learning_rate=0.7,
+        seed=17,
+    )
+    training = model.train(samples, epochs=120)
+
+    error_view = render_error_history(training)
+    mlp_view = render_mlp_parameter_history(training)
+    report = render_training_report(training)
+
+    ok = (
+        "Error history:" in error_view
+        and "MLP parameter history:" in mlp_view
+        and "out=[" in mlp_view
+        and "MLP parameter history:" in report
+    )
+    print(error_view)
+    print(mlp_view)
+    print(f"  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
 if __name__ == "__main__":
     print("=" * 45)
     print("  TIE-Lang — Tests: Neural")
@@ -283,4 +312,5 @@ if __name__ == "__main__":
     test_trainable_xor_mlp()
     test_parity3_trainable_mlp()
     test_peak3_trainable_mlp()
+    test_multilayer_visualization()
     print("✅ Capa neural experimental verificada")

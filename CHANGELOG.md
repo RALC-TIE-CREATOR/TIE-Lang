@@ -1,15 +1,30 @@
 # Changelog
 
-## Unreleased
+## v0.2.0
 
-Current work on `main` after `v0.1.0` includes:
+Second public release of TIE-Lang, focused on language maturity,
+experimental neural groundwork, and a cleaner public repository surface.
+
+Included in this version:
 
 - experimental neural layer with trainable perceptron and minimal MLP support
 - richer neural datasets, including boolean, geometric, and temporal examples
 - textual visualization of multilayer training history
 - compiler support for function-local scope with global reads when not shadowed
 - stronger compiler regression coverage, now including scope behavior
-- public documentation cleanup and a clearer repository front page
+- improved README, roadmap, and contributor-facing documentation
+
+Notes:
+
+- The compiler now supports function-local scope at compile time.
+- The neural layer is public and demonstrable, but remains experimental.
+- The core machine model remains the same documented 4-bit execution baseline.
+
+## Unreleased
+
+Current work on `main` after `v0.2.0` includes:
+
+- further language growth after the v0.2.0 baseline
 
 ## v0.1.0
 

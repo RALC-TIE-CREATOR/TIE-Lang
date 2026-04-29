@@ -17,6 +17,7 @@
 
 - Apache License 2.0 added
 - `v0.1.0` tag and GitHub release created
+- `v0.2.0` release prepared for the current public repository state
 - `tie` chosen as the primary public command
 - legacy whitespace argument syntax retained for compatibility in v1.0
 

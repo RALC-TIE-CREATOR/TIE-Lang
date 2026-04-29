@@ -40,6 +40,6 @@ This is enough for:
 
 Before broader public distribution, the next recommended steps are:
 
-- choose an explicit license
 - add versioning policy for the language spec
 - optionally publish to PyPI only after syntax and v1 semantics are frozen
+- keep GitHub releases aligned with the current public-facing repository state

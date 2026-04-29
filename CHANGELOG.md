@@ -25,6 +25,7 @@ Notes:
 Current work on `main` after `v0.2.0` includes:
 
 - further language growth after the v0.2.0 baseline
+- explicit global writes from functions through `global name = expr`
 
 ## v0.1.0
 

@@ -51,6 +51,12 @@ Demuestra que los comparadores producen booleanos normalizados.
 
 Salida esperada: `1, 0, 1, 1, 1, 1`
 
+### estado_global.tie
+Demuestra escritura explicita al espacio global desde una funcion
+y desde el programa principal.
+
+Salida esperada: `4, 4, 6`
+
 ## Sintaxis oficial
 
 Para v1.0, la sintaxis pública recomendada en ejemplos es la forma
@@ -63,3 +69,15 @@ def max(a, b):
 
 La forma sin comas sigue funcionando por compatibilidad, pero no es
 la sintaxis recomendada para documentación pública nueva.
+
+## Escritura global explicita
+
+Cuando una función necesita actualizar una variable global de forma
+intencional, la sintaxis pública es:
+
+```tie
+global contador = contador + 1
+```
+
+Esto escribe en el espacio global aunque exista una variable local con
+el mismo nombre dentro de la función.

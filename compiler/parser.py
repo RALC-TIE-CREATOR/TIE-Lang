@@ -48,6 +48,11 @@ class NodoAsignar:
     expr:   Any
 
 @dataclass
+class NodoGlobalAsignar:
+    nombre: str
+    expr:   Any
+
+@dataclass
 class NodoIf:
     condicion: Any
     cuerpo:    List
@@ -199,6 +204,14 @@ class Parser:
             expr = self.parse_expr()
             self._skip_newlines()
             return NodoPrint(expr)
+
+        if t.tipo == TipoToken.GLOBAL:
+            self.consumir()
+            nombre = self.consumir(TipoToken.ID).valor
+            self.consumir(TipoToken.IGUAL)
+            expr = self.parse_expr()
+            self._skip_newlines()
+            return NodoGlobalAsignar(nombre, expr)
 
         if t.tipo == TipoToken.IF:
             return self.parse_if()

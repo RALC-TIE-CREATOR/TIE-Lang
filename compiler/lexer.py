@@ -22,6 +22,7 @@ class TipoToken(Enum):
     DEF     = auto()   # def
     RETURN  = auto()   # return
     PRINT   = auto()   # print
+    GLOBAL  = auto()   # global
     OP      = auto()   # + - & | ^ ~ ,
     COMP    = auto()   # == != < > <= >=
     IGUAL   = auto()   # =
@@ -42,6 +43,7 @@ PALABRAS_CLAVE = {
     'def':    TipoToken.DEF,
     'return': TipoToken.RETURN,
     'print':  TipoToken.PRINT,
+    'global': TipoToken.GLOBAL,
 }
 
 

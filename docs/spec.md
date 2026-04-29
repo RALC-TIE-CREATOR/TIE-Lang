@@ -34,6 +34,7 @@ Supported statements:
 
 - `let name = expr`
 - `name = expr`
+- `global name = expr`
 - `print expr`
 - `if expr:`
 - `else:`
@@ -64,6 +65,7 @@ Function behavior in v1.0:
 - Function parameters and variables assigned inside a function use function-local RAM slots.
 - A function may read a global variable when no local variable shadows that name.
 - A local variable shadows a global variable with the same name for the duration of that function body.
+- `global name = expr` writes explicitly to the top-level variable namespace.
 - Return values are produced in `R3`.
 - A call used inside an expression is moved from `R3` into the requested destination register.
 
@@ -138,6 +140,7 @@ Example:
 - RAM is shared across the current compiled program.
 - Function parameters are materialized into RAM on function entry.
 - Function-local slots are separate from global slots, so local temporaries do not overwrite top-level variables by name.
+- Explicit global writes always target the top-level slot for that name, even when a local variable with the same spelling exists.
 
 ## Current limits
 

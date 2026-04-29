@@ -16,7 +16,7 @@ from typing import List, Dict
 from .lexer import Lexer
 from .parser import (
     Parser, NodoNum, NodoID, NodoBinOp, NodoUnOp,
-    NodoAsignar, NodoIf, NodoWhile, NodoDef,
+    NodoAsignar, NodoGlobalAsignar, NodoIf, NodoWhile, NodoDef,
     NodoLlamar, NodoReturn, NodoPrint
 )
 import sys
@@ -61,6 +61,9 @@ class Compilador:
     def _addr_escritura(self, nombre: str) -> int:
         if self.in_function:
             return self._alloc_addr(self._scope_actual(), nombre)
+        return self._alloc_addr(self.variables, nombre)
+
+    def _addr_global(self, nombre: str) -> int:
         return self._alloc_addr(self.variables, nombre)
 
     def _emit(self, op, dest=None, src1=None,
@@ -151,6 +154,11 @@ class Compilador:
             self.compilar_expr(nodo.expr, 'R0')
             self._emit(Operacion.STORE, None, 'R0',
                        str(self._addr_escritura(nodo.nombre)))
+
+        elif isinstance(nodo, NodoGlobalAsignar):
+            self.compilar_expr(nodo.expr, 'R0')
+            self._emit(Operacion.STORE, None, 'R0',
+                       str(self._addr_global(nodo.nombre)))
 
         elif isinstance(nodo, NodoPrint):
             self.compilar_expr(nodo.expr, 'R0')

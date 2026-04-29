@@ -5,7 +5,7 @@ Tests del compilador TIE-Lang v1.0.
 Verifica el pipeline completo:
     fuente → Lexer → Parser → AST → Compilador → CPU
 
-Programas verificados: 10/10 correctos.
+Programas verificados: 12/12 correctos.
 """
 
 import sys
@@ -218,6 +218,49 @@ print a
     print()
 
 
+def test_global_assignment_from_function():
+    """P11: Una función puede escribir explícitamente a un global."""
+    print("── P11: Escritura global ─────────────────")
+    resultado = compile_and_run("""
+let contador = 1
+
+def subir(n):
+    global contador = contador + n
+    return contador
+
+print subir(3)
+print contador
+""", titulo="P11", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [4, 4]
+    print(f"  Salida: {salida}  esperado=[4, 4]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
+def test_global_assignment_with_shadowing():
+    """P12: global x = ... actualiza el global aunque exista un local x."""
+    print("── P12: Global con shadowing ─────────────")
+    resultado = compile_and_run("""
+let total = 2
+
+def ajustar(total):
+    let local = total + 1
+    global total = local + 5
+    return local
+
+print ajustar(4)
+print total
+""", titulo="P12", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [5, 10]
+    print(f"  Salida: {salida}  esperado=[5, 10]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
 if __name__ == "__main__":
     print("=" * 50)
     print("  TIE-Lang — Tests: Compilador v1.0")
@@ -233,4 +276,6 @@ if __name__ == "__main__":
     test_scope_local_shadowing()
     test_scope_global_read()
     test_scope_locals_do_not_leak()
-    print("✅ Compilador completo — 10/10 programas correctos")
+    test_global_assignment_from_function()
+    test_global_assignment_with_shadowing()
+    print("✅ Compilador completo — 12/12 programas correctos")

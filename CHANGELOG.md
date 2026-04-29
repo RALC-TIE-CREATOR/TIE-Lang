@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+Current work on `main` after `v0.1.0` includes:
+
+- experimental neural layer with trainable perceptron and minimal MLP support
+- richer neural datasets, including boolean, geometric, and temporal examples
+- textual visualization of multilayer training history
+- compiler support for function-local scope with global reads when not shadowed
+- stronger compiler regression coverage, now including scope behavior
+- public documentation cleanup and a clearer repository front page
+
 ## v0.1.0
 
 Initial public-ready local distribution layer for TIE-Lang.

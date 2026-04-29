@@ -1,127 +1,68 @@
 # TIE-Lang
 
-**Topological Infrastructure Language** —
-A programming language where computation is
-implemented through topological phase vortices
-in a discrete sine-Gordon network.
+**Topological Infrastructure Language** is a programming language project inspired by TIE/SIT and implemented as a working toolchain.
 
-## What is this?
+Today, the repository contains a real executable pipeline:
 
-TIE-Lang is based on the Spatial Infrastructure
-Theory (TIE/SIT). The core insight:
+`source -> lexer -> parser -> compiler -> 4-bit CPU -> execution`
 
-> Matter is not a deformation of space.
-> Matter is **information** encoded in the infrastructure.
-> Therefore reality already has a programming language.
-> TIE-Lang is an attempt to discover it.
+TIE-Lang is therefore two things at once:
 
-TIE-Lang is both:
+- a conceptual language derived from the TIE framework
+- a runnable implementation with examples, tests, CLI tooling, and an experimental neural layer
 
-- a conceptual programming language derived from TIE/SIT
-- a working Python implementation that compiles source code into a 4-bit virtual CPU
+## Why this repo exists
 
-## Why TIE-Lang?
+The project starts from a simple claim:
 
-TIE-Lang is not meant to be just another toy syntax.
-The project tries to connect:
+> Matter is not a deformation of space.  
+> Matter is information encoded in infrastructure.  
+> If reality already computes, it should have a language.
 
-- topological information primitives
-- a concrete execution model
-- a small but real source language
-- a path from theory to executable computation
+TIE-Lang explores that claim by turning it into code.
 
-## How it works
+## What works today
 
-Classical computers store bits as voltage (fragile).
-TIE-Lang stores bits as topological winding numbers (robust).
+The current repository already supports:
 
-| Property        | Silicon       | TIE-Lang         |
-|-----------------|---------------|------------------|
-| Data unit       | voltage       | winding number N |
-| Noise immunity  | vulnerable    | topological      |
-| Memory refresh  | every 64ms    | never needed     |
-| Energy (compute)| dissipates    | 0.00 measured    |
-
-## Alphabet
-
-| Symbol | N  | Logical value |
-|--------|----|---------------|
-| Electron | 9 | 0             |
-| Proton   | 8 | 1             |
-| Neutrino | 4 | null/pointer  |
-| W/Z boson| 7 | operator      |
-
-## Current status: v1.0
-
-- ✅ v0.1 Logic gates (NOT, AND, OR) — Turing complete
-- ✅ v0.2 Arithmetic (Half/Full Adder, 4-bit)
-- ✅ v0.3 Topological persistent memory
-- ✅ v0.4 Complete ALU (7 operations, flags)
-- ✅ v0.5 CPU (fetch/decode/execute, jumps, subroutines)
-- ✅ v1.0 Compiler (source → lexer → AST → CPU)
-- 🔵 v1.1 Topological Neural Network (next)
+- a lexer, parser, and compiler for a small indentation-based language
+- a 4-bit virtual CPU with RAM, flags, jumps, calls, and returns
+- arithmetic, logic, comparisons, `if`, `while`, `print`, and functions
+- function-local scope with global reads when names are not shadowed
+- official CLI execution through `tie`
+- canonical example programs
+- an experimental neural layer with trainable perceptrons and minimal MLPs
 
 ## Quick start
 
-```python
-from compiler.compiler import compile_and_run
+Install locally:
 
-compile_and_run("""
-let x = 6
-let y = 9
-print x + y
-""")
-# Output: 15
+```bash
+pip install -e .
 ```
 
-Run a `.tie` file directly:
+Run a program:
 
 ```bash
 tie examples/fibonacci.tie
 tie examples/funciones.tie
 tie --list-examples
-tie --version
+```
+
+You can also run through the module or root launcher:
+
+```bash
 python -m compiler.run examples/fibonacci.tie
-python -m compiler.run examples/fibonacci.tie --asm
 python tie.py examples/fibonacci.tie
 ```
 
-## Local install
+## First example
 
-Run directly from the repo:
-
-```bash
-python tie.py examples/fibonacci.tie
+```tie
+let x = 6
+let y = 9
+print x + y
 ```
-
-Install as a local command:
-
-```bash
-pip install -e .
-tie examples/fibonacci.tie
-```
-
-`tie` is the primary public command for TIE-Lang.
-`python -m compiler.run` and `python tie.py` remain supported execution paths.
-
-Useful CLI commands:
-
-```bash
-tie --help
-tie --version
-tie --list-examples
-tie examples
-```
-
-## Syntax notes
-
-- Blocks use Python-style indentation.
-- Official v1.0 function syntax uses commas: `f(a, b)`.
-- Legacy whitespace form `f(a b)` is intentionally retained for compatibility in v1.0.
-- Arithmetic and storage are currently 4-bit at the CPU level.
-- Negative subtraction wraps in 4 bits and also sets the `N` flag.
-
-Example:
 
 ```tie
 def max(a, b):
@@ -130,93 +71,80 @@ def max(a, b):
     else:
         return b
 
-let x = 6
-let y = 9
-print max(x, y)
+print max(6, 9)
 ```
 
-## Results
+## Language snapshot
 
-All operations verified:
-- Logic: 3/3 gates correct
-- Arithmetic: all sums correct including carry
-- Memory: 51/51 persistence checks, zero degradation
-- ALU: 22/22 operations correct (100%)
-- CPU: 4/4 programs correct
-- Compiler: 10/10 programs correct
+- Blocks use Python-style indentation.
+- Public v1.0 function syntax uses commas: `f(a, b)`.
+- Legacy whitespace syntax `f(a b)` still works in v1.0 for compatibility.
+- Registers and RAM are currently 4-bit.
+- Comparisons return normalized booleans: `1` or `0`.
+- Function scope is static and compiler-managed in the current implementation.
 
-## Language spec
+## Current status
 
-The current implementation now has a stable v1.0 execution model:
+Implemented milestones:
 
-- Source syntax is indentation-based.
-- Variables live in 4-bit RAM.
-- Registers `R0`-`R3` are 4-bit.
-- Arithmetic is modular at 4 bits in the CPU.
-- Comparisons produce boolean values `1` or `0`.
-- Function arguments currently support up to 4 positional values.
-- Functions now support compile-time local scope with global reads when not shadowed.
-- Official syntax is `f(a, b)`, while `f(a b)` is intentionally preserved as legacy-compatible syntax in v1.0.
+- `v0.1` logic gates
+- `v0.2` arithmetic
+- `v0.3` persistent memory
+- `v0.4` ALU
+- `v0.5` CPU
+- `v1.0` compiler and runnable language
+- `v1.1` experimental neural layer groundwork
 
-See `docs/spec.md` for the technical reference and
-`docs/arquitectura.md` for the execution pipeline.
+Verification currently included in the repo:
 
-## Project layout
+- Logic: `3/3`
+- Memory: `51/51`
+- ALU: `22/22`
+- CPU programs: `4/4`
+- Compiler programs: `10/10`
 
-- `compiler/`: lexer, parser, compiler, runner
-- `core/`: topological logic and arithmetic primitives
-- `cpu/`: 4-bit virtual CPU and memory
-- `neural/`: experimental neural/topological learning layer
-- `examples/`: canonical `.tie` programs
-- `tests/`: verification suites for compiler, CPU, ALU, runner, CLI and neural layer
+## Repo guide
+
+- `compiler/` - lexer, parser, compiler, CLI runner
+- `core/` - topological logic and arithmetic primitives
+- `cpu/` - 4-bit virtual CPU and memory
+- `examples/` - canonical `.tie` programs
+- `tests/` - verification suites
+- `neural/` - experimental learning layer
+- `docs/` - specification, architecture, roadmap, and distribution notes
+
+## Read next
+
+- [Language spec](/C:/Users/ralc0/Downloads/TIE-Lang/docs/spec.md)
+- [Architecture](/C:/Users/ralc0/Downloads/TIE-Lang/docs/arquitectura.md)
+- [Examples](/C:/Users/ralc0/Downloads/TIE-Lang/examples/README.md)
+- [Roadmap](/C:/Users/ralc0/Downloads/TIE-Lang/docs/roadmap.md)
+- [Changelog](/C:/Users/ralc0/Downloads/TIE-Lang/CHANGELOG.md)
+- [Contributing](/C:/Users/ralc0/Downloads/TIE-Lang/CONTRIBUTING.md)
 
 ## Current limits
 
-The current implementation is intentionally small and explicit:
+The current implementation is intentionally compact:
 
-- CPU model is 4-bit
-- RAM model is 16 cells
-- function calls support up to 4 positional arguments
-- no arrays, strings or floating point yet
-- function scope is static and RAM-based, without full dynamic stack frames yet
+- 4-bit registers and RAM cells
+- 16 RAM cells in the present CPU model
+- up to 4 positional function arguments
+- no arrays, strings, or floating point yet
+- no full dynamic stack-frame model yet
+- recursion is not guaranteed by the current scope and RAM allocation strategy
 
-These are implementation limits, not necessarily permanent design limits.
+These are implementation limits, not a final statement about the language.
 
-## Release notes
+## Public status
 
-See `CHANGELOG.md` for implementation milestones and
-`docs/distribution.md` for local packaging and publication notes.
+The repo is public-ready as an executable research language prototype.
+It should be read as:
 
-## Roadmap
-
-Near-term work after `v0.1.0`:
-
-- improve public demos and release presentation
-- expand the language beyond the current 4-bit baseline
-- evaluate the next major layer: neural/topological learning components
-
-Experimental neural groundwork is now present in `neural/`
-as a minimal topological perceptron baseline.
-
-## Theoretical foundation
-
-Based on TIE (Teoría de la Infraestructura Espacial)
-by Rubén A. Lecona Curto (R@LC), 2026.
+- a serious implementation
+- a compact machine model
+- an evolving language
+- an experimental bridge between theory and computation
 
 ## License
 
-Apache License 2.0. See `LICENSE`.
-
-## Authors
-
-- R@LC — Theory and concept
-- Claude (Anthropic) — Implementation partner
-
-## Next: Neural Networks
-
-Topological weights cannot be corrupted by noise.
-A neural network where weights are vortices N
-would be inherently noise-immune without
-error correction overhead.
-
-See `neural/` directory.
+Apache License 2.0. See [LICENSE](/C:/Users/ralc0/Downloads/TIE-Lang/LICENSE).

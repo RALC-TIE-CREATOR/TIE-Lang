@@ -17,7 +17,7 @@ from .lexer import Lexer
 from .parser import (
     Parser, NodoNum, NodoBool, NodoID, NodoBinOp, NodoCompareChain, NodoUnOp,
     NodoAsignar, NodoGlobalAsignar, NodoIf, NodoWhile, NodoDef,
-    NodoLlamar, NodoReturn, NodoPrint
+    NodoLlamar, NodoReturn, NodoPrint, NodoBreak, NodoContinue
 )
 import sys
 import os
@@ -37,6 +37,7 @@ class Compilador:
         self.next_label: int = 0
         self.scope_stack: List[Dict[str, int]] = [self.variables]
         self.in_function: bool = False
+        self.loop_stack: List[tuple[str, str]] = []
 
     def _nueva_etiqueta(self, prefijo='L') -> str:
         self.next_label += 1
@@ -352,11 +353,26 @@ class Compilador:
             self.compilar_expr(nodo.condicion, 'R0')
             self._emit(Operacion.CMP, None, 'R0', '0')
             self._emit(Operacion.JZ,  None, etq_fin)
+            self.loop_stack.append((etq_inicio, etq_fin))
             self._compilar_bloque(nodo.cuerpo, scope_local=self.in_function)
+            self.loop_stack.pop()
             self._emit(Operacion.JMP, None, etq_inicio)
             self.codigo.append(
                 Instruccion(Operacion.LOAD, 'R3', '0',
                             label=etq_fin))
+
+        elif isinstance(nodo, NodoBreak):
+            if not self.loop_stack:
+                raise SyntaxError("break solo puede usarse dentro de un while")
+            _, etq_fin = self.loop_stack[-1]
+            self._emit(Operacion.JMP, None, etq_fin)
+
+        elif isinstance(nodo, NodoContinue):
+            if not self.loop_stack:
+                raise SyntaxError(
+                    "continue solo puede usarse dentro de un while")
+            etq_inicio, _ = self.loop_stack[-1]
+            self._emit(Operacion.JMP, None, etq_inicio)
 
         elif isinstance(nodo, NodoDef):
             self.funciones[nodo.nombre] = nodo

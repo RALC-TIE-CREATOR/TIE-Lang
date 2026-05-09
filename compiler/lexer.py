@@ -17,8 +17,11 @@ class TipoToken(Enum):
     ID      = auto()   # nombre_variable
     LET     = auto()   # let
     IF      = auto()   # if
+    ELIF    = auto()   # elif
     ELSE    = auto()   # else
     WHILE   = auto()   # while
+    BREAK   = auto()   # break
+    CONTINUE = auto()  # continue
     DEF     = auto()   # def
     RETURN  = auto()   # return
     PRINT   = auto()   # print
@@ -33,6 +36,8 @@ class TipoToken(Enum):
     IGUAL   = auto()   # =
     LPAREN  = auto()   # (
     RPAREN  = auto()   # )
+    LBRACKET = auto()  # [
+    RBRACKET = auto()  # ]
     COLON   = auto()   # :
     NEWLINE = auto()
     INDENT  = auto()
@@ -43,8 +48,11 @@ class TipoToken(Enum):
 PALABRAS_CLAVE = {
     'let':    TipoToken.LET,
     'if':     TipoToken.IF,
+    'elif':   TipoToken.ELIF,
     'else':   TipoToken.ELSE,
     'while':  TipoToken.WHILE,
+    'break':  TipoToken.BREAK,
+    'continue': TipoToken.CONTINUE,
     'def':    TipoToken.DEF,
     'return': TipoToken.RETURN,
     'print':  TipoToken.PRINT,
@@ -161,6 +169,8 @@ class Lexer:
                 mapa = {
                     '(': TipoToken.LPAREN,
                     ')': TipoToken.RPAREN,
+                    '[': TipoToken.LBRACKET,
+                    ']': TipoToken.RBRACKET,
                     ':': TipoToken.COLON,
                 }
                 if c in mapa:

@@ -6,7 +6,7 @@ Convierte tokens en AST (Abstract Syntax Tree).
 
 Gramática:
     programa    = sentencia*
-    sentencia   = asignar | print | if | while | def | return | expr
+    sentencia   = asignar | print | if | while | break | continue | def | return | expr
     asignar     = ('let')? ID '=' expr
     expr        = disyuncion
     disyuncion  = conjuncion ('or' conjuncion)*
@@ -94,6 +94,14 @@ class NodoReturn:
 @dataclass
 class NodoPrint:
     expr: Any
+
+@dataclass
+class NodoBreak:
+    pass
+
+@dataclass
+class NodoContinue:
+    pass
 
 
 # ── Parser ───────────────────────────────────────────────────────────
@@ -269,6 +277,16 @@ class Parser:
         if t.tipo == TipoToken.WHILE:
             return self.parse_while()
 
+        if t.tipo == TipoToken.BREAK:
+            self.consumir()
+            self._skip_newlines()
+            return NodoBreak()
+
+        if t.tipo == TipoToken.CONTINUE:
+            self.consumir()
+            self._skip_newlines()
+            return NodoContinue()
+
         if t.tipo == TipoToken.DEF:
             return self.parse_def()
 
@@ -302,7 +320,25 @@ class Parser:
         self._skip_newlines()
         cuerpo = self.parse_bloque()
         sino = []
-        if self.actual().tipo == TipoToken.ELSE:
+        if self.actual().tipo == TipoToken.ELIF:
+            sino = [self.parse_elif()]
+        elif self.actual().tipo == TipoToken.ELSE:
+            self.consumir()
+            self.consumir(TipoToken.COLON)
+            self._skip_newlines()
+            sino = self.parse_bloque()
+        return NodoIf(cond, cuerpo, sino)
+
+    def parse_elif(self) -> NodoIf:
+        self.consumir(TipoToken.ELIF)
+        cond = self.parse_expr()
+        self.consumir(TipoToken.COLON)
+        self._skip_newlines()
+        cuerpo = self.parse_bloque()
+        sino = []
+        if self.actual().tipo == TipoToken.ELIF:
+            sino = [self.parse_elif()]
+        elif self.actual().tipo == TipoToken.ELSE:
             self.consumir()
             self.consumir(TipoToken.COLON)
             self._skip_newlines()

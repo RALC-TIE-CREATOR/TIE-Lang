@@ -63,6 +63,11 @@ y desde el programa principal.
 
 Salida esperada: `4, 4, 6`
 
+### control_flujo.tie
+Demuestra `elif`, `break` y `continue` dentro de un programa compacto.
+
+Salida esperada: `2, 1, 2, 4, 5, 0, 1`
+
 ## Sintaxis oficial
 
 Para v1.0, la sintaxis pública recomendada en ejemplos es la forma

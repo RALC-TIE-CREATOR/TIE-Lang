@@ -37,8 +37,11 @@ Supported statements:
 - `global name = expr`
 - `print expr`
 - `if expr:`
+- `elif expr:`
 - `else:`
 - `while expr:`
+- `break`
+- `continue`
 - `def name(args):`
 - `return expr`
 
@@ -98,11 +101,14 @@ This legacy form is compatibility syntax, not the preferred public style.
 - The result is compared against `0`.
 - `0` selects the `else` branch.
 - Nonzero selects the main branch.
+- `elif` is supported and behaves like a chained `else: if ...`.
 
 ### While
 
 - The loop condition is reevaluated on every iteration.
 - The loop exits when the condition evaluates to `0`.
+- `break` exits the nearest enclosing `while`.
+- `continue` jumps to the next evaluation of the nearest enclosing `while`.
 
 ## Comparison semantics
 
@@ -159,6 +165,7 @@ Known implementation limits in v1.0:
 - no floating point
 - no strings
 - no arrays
+- `break` and `continue` are only valid inside `while`
 - function scope is static at compile time, not a full dynamic stack-frame model
 - recursion is not guaranteed by the current RAM-slot allocation approach
 

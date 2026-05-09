@@ -5,7 +5,7 @@ Tests del compilador TIE-Lang v1.0.
 Verifica el pipeline completo:
     fuente → Lexer → Parser → AST → Compilador → CPU
 
-Programas verificados: 17/17 correctos.
+Programas verificados: 20/20 correctos.
 """
 
 import sys
@@ -356,6 +356,65 @@ print false or (2 <= 2)
     print()
 
 
+def test_elif():
+    """P18: elif selecciona la rama intermedia correcta."""
+    print("── P18: Elif ────────────────────────────")
+    resultado = compile_and_run("""
+let x = 3
+if x == 1:
+    print 1
+elif x == 3:
+    print 2
+else:
+    print 9
+""", titulo="P18", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [2]
+    print(f"  Salida: {salida}  esperado=[2]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
+def test_break():
+    """P19: break sale del while cuando se cumple la condicion interna."""
+    print("── P19: Break ───────────────────────────")
+    resultado = compile_and_run("""
+let i = 0
+while i < 6:
+    if i == 3:
+        break
+    print i
+    i = i + 1
+print 9
+""", titulo="P19", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [0, 1, 2, 9]
+    print(f"  Salida: {salida}  esperado=[0, 1, 2, 9]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
+def test_continue():
+    """P20: continue salta al siguiente ciclo sin ejecutar el resto del cuerpo."""
+    print("── P20: Continue ────────────────────────")
+    resultado = compile_and_run("""
+let i = 0
+while i < 5:
+    i = i + 1
+    if i == 3:
+        continue
+    print i
+""", titulo="P20", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [1, 2, 4, 5]
+    print(f"  Salida: {salida}  esperado=[1, 2, 4, 5]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
 if __name__ == "__main__":
     print("=" * 50)
     print("  TIE-Lang — Tests: Compilador v1.0")
@@ -378,4 +437,7 @@ if __name__ == "__main__":
     test_multiplicacion_y_precedencia()
     test_operadores_logicos()
     test_comparaciones_encadenadas_y_bool()
-    print("✅ Compilador completo — 17/17 programas correctos")
+    test_elif()
+    test_break()
+    test_continue()
+    print("✅ Compilador completo — 20/20 programas correctos")

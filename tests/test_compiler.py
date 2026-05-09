@@ -5,7 +5,7 @@ Tests del compilador TIE-Lang v1.0.
 Verifica el pipeline completo:
     fuente → Lexer → Parser → AST → Compilador → CPU
 
-Programas verificados: 12/12 correctos.
+Programas verificados: 14/14 correctos.
 """
 
 import sys
@@ -261,6 +261,47 @@ print total
     print()
 
 
+def test_block_scope_shadowing_inside_function():
+    """P13: let dentro de if crea shadowing local de bloque."""
+    print("── P13: Scope de bloque/shadowing ───────")
+    resultado = compile_and_run("""
+def prueba():
+    let total = 1
+    if 1:
+        let total = 5
+        print total
+    print total
+
+prueba()
+""", titulo="P13", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [5, 1]
+    print(f"  Salida: {salida}  esperado=[5, 1]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
+def test_block_assignment_updates_outer_scope():
+    """P14: asignacion sin let dentro de bloque actualiza el scope exterior."""
+    print("── P14: Scope de bloque/actualizacion ──")
+    resultado = compile_and_run("""
+def prueba():
+    let total = 1
+    if 1:
+        total = total + 4
+    print total
+
+prueba()
+""", titulo="P14", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [5]
+    print(f"  Salida: {salida}  esperado=[5]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
 if __name__ == "__main__":
     print("=" * 50)
     print("  TIE-Lang — Tests: Compilador v1.0")
@@ -278,4 +319,6 @@ if __name__ == "__main__":
     test_scope_locals_do_not_leak()
     test_global_assignment_from_function()
     test_global_assignment_with_shadowing()
-    print("✅ Compilador completo — 12/12 programas correctos")
+    test_block_scope_shadowing_inside_function()
+    test_block_assignment_updates_outer_scope()
+    print("✅ Compilador completo — 14/14 programas correctos")

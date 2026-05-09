@@ -46,6 +46,7 @@ class NodoUnOp:
 class NodoAsignar:
     nombre: str
     expr:   Any
+    declaracion: bool = False
 
 @dataclass
 class NodoGlobalAsignar:
@@ -189,7 +190,7 @@ class Parser:
             self.consumir(TipoToken.IGUAL)
             expr = self.parse_expr()
             self._skip_newlines()
-            return NodoAsignar(nombre, expr)
+            return NodoAsignar(nombre, expr, declaracion=True)
 
         if (t.tipo == TipoToken.ID and
                 self.ver().tipo == TipoToken.IGUAL):
@@ -197,7 +198,7 @@ class Parser:
             self.consumir(TipoToken.IGUAL)
             expr = self.parse_expr()
             self._skip_newlines()
-            return NodoAsignar(nombre, expr)
+            return NodoAsignar(nombre, expr, declaracion=False)
 
         if t.tipo == TipoToken.PRINT:
             self.consumir()

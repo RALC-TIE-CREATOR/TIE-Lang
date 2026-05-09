@@ -51,6 +51,13 @@ class Compilador:
     def _scope_actual(self) -> Dict[str, int]:
         return self.scope_stack[-1]
 
+    def _push_scope(self):
+        self.scope_stack.append({})
+
+    def _pop_scope(self):
+        if len(self.scope_stack) > 1:
+            self.scope_stack.pop()
+
     def _addr_lectura(self, nombre: str) -> int:
         if self.in_function:
             for scope in reversed(self.scope_stack[1:]):
@@ -58,8 +65,13 @@ class Compilador:
                     return scope[nombre]
         return self._alloc_addr(self.variables, nombre)
 
-    def _addr_escritura(self, nombre: str) -> int:
+    def _addr_escritura(self, nombre: str, declaracion: bool = False) -> int:
         if self.in_function:
+            if declaracion:
+                return self._alloc_addr(self._scope_actual(), nombre)
+            for scope in reversed(self.scope_stack[1:]):
+                if nombre in scope:
+                    return scope[nombre]
             return self._alloc_addr(self._scope_actual(), nombre)
         return self._alloc_addr(self.variables, nombre)
 
@@ -70,6 +82,14 @@ class Compilador:
               src2=None, label=None):
         self.codigo.append(
             Instruccion(op, dest, src1, src2, label))
+
+    def _compilar_bloque(self, stmts, scope_local: bool = False):
+        if scope_local:
+            self._push_scope()
+        for stmt in stmts:
+            self.compilar_stmt(stmt)
+        if scope_local:
+            self._pop_scope()
 
     # ── Compilar expresión ───────────────────────────────────────────
 
@@ -153,7 +173,9 @@ class Compilador:
         if isinstance(nodo, NodoAsignar):
             self.compilar_expr(nodo.expr, 'R0')
             self._emit(Operacion.STORE, None, 'R0',
-                       str(self._addr_escritura(nodo.nombre)))
+                       str(self._addr_escritura(
+                           nodo.nombre,
+                           declaracion=nodo.declaracion)))
 
         elif isinstance(nodo, NodoGlobalAsignar):
             self.compilar_expr(nodo.expr, 'R0')
@@ -170,14 +192,12 @@ class Compilador:
             etq_sino = self._nueva_etiqueta('sino')
             etq_fin  = self._nueva_etiqueta('finif')
             self._emit(Operacion.JZ, None, etq_sino)
-            for s in nodo.cuerpo:
-                self.compilar_stmt(s)
+            self._compilar_bloque(nodo.cuerpo, scope_local=self.in_function)
             self._emit(Operacion.JMP, None, etq_fin)
             self.codigo.append(
                 Instruccion(Operacion.LOAD, 'R3', '0',
                             label=etq_sino))
-            for s in nodo.sino:
-                self.compilar_stmt(s)
+            self._compilar_bloque(nodo.sino, scope_local=self.in_function)
             self.codigo.append(
                 Instruccion(Operacion.LOAD, 'R3', '0',
                             label=etq_fin))
@@ -191,8 +211,7 @@ class Compilador:
             self.compilar_expr(nodo.condicion, 'R0')
             self._emit(Operacion.CMP, None, 'R0', '0')
             self._emit(Operacion.JZ,  None, etq_fin)
-            for s in nodo.cuerpo:
-                self.compilar_stmt(s)
+            self._compilar_bloque(nodo.cuerpo, scope_local=self.in_function)
             self._emit(Operacion.JMP, None, etq_inicio)
             self.codigo.append(
                 Instruccion(Operacion.LOAD, 'R3', '0',
@@ -204,14 +223,13 @@ class Compilador:
             self._emit(Operacion.JMP, None, etq_saltar)
             primera = True
             regs_args = ['R0', 'R1', 'R2', 'R3']
-            local_scope: Dict[str, int] = {}
-            self.scope_stack.append(local_scope)
+            self._push_scope()
             self.in_function = True
 
             for i, param in enumerate(nodo.params[:4]):
                 prev_len = len(self.codigo)
                 self._emit(Operacion.STORE, None, regs_args[i],
-                           str(self._addr_escritura(param)))
+                           str(self._addr_escritura(param, declaracion=True)))
                 if primera:
                     self.codigo[prev_len].label = nodo.nombre
                     primera = False
@@ -229,7 +247,7 @@ class Compilador:
                         self.codigo[prev_len].label = nodo.nombre
                         primera = False
 
-            self.scope_stack.pop()
+            self._pop_scope()
             self.in_function = False
             self._emit(Operacion.RET)
             self.codigo.append(

@@ -49,12 +49,14 @@ Blocks are delimited by indentation, following a Python-style layout rule.
 Supported expression forms:
 
 - integer literals
+- boolean literals `true`, `false`
 - identifiers
 - unary `~`
 - unary `not`
 - binary `+`, `-`, `*`, `&`, `|`, `^`
 - logical `and`, `or`
 - comparisons `==`, `!=`, `<`, `>`, `<=`, `>=`
+- chained comparisons such as `a < b < c`
 - function calls
 
 ## Functions

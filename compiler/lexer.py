@@ -26,6 +26,8 @@ class TipoToken(Enum):
     AND     = auto()   # and
     OR_KW   = auto()   # or
     NOT_KW  = auto()   # not
+    TRUE    = auto()   # true
+    FALSE   = auto()   # false
     OP      = auto()   # + - & | ^ ~ ,
     COMP    = auto()   # == != < > <= >=
     IGUAL   = auto()   # =
@@ -50,6 +52,8 @@ PALABRAS_CLAVE = {
     'and':    TipoToken.AND,
     'or':     TipoToken.OR_KW,
     'not':    TipoToken.NOT_KW,
+    'true':   TipoToken.TRUE,
+    'false':  TipoToken.FALSE,
 }
 
 

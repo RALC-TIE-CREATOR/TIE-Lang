@@ -5,7 +5,7 @@ Tests del compilador TIE-Lang v1.0.
 Verifica el pipeline completo:
     fuente → Lexer → Parser → AST → Compilador → CPU
 
-Programas verificados: 16/16 correctos.
+Programas verificados: 17/17 correctos.
 """
 
 import sys
@@ -339,6 +339,23 @@ print (3 < 4) or (2 < 1)
     print()
 
 
+def test_comparaciones_encadenadas_y_bool():
+    """P17: comparaciones encadenadas y literales true/false."""
+    print("── P17: Comparaciones encadenadas ───────")
+    resultado = compile_and_run("""
+print 1 < 2 < 3
+print 1 < 2 > 3
+print true and not false
+print false or (2 <= 2)
+""", titulo="P17", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [1, 0, 1, 1]
+    print(f"  Salida: {salida}  esperado=[1, 0, 1, 1]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
 if __name__ == "__main__":
     print("=" * 50)
     print("  TIE-Lang — Tests: Compilador v1.0")
@@ -360,4 +377,5 @@ if __name__ == "__main__":
     test_block_assignment_updates_outer_scope()
     test_multiplicacion_y_precedencia()
     test_operadores_logicos()
-    print("✅ Compilador completo — 16/16 programas correctos")
+    test_comparaciones_encadenadas_y_bool()
+    print("✅ Compilador completo — 17/17 programas correctos")

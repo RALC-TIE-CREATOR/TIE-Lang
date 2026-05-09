@@ -29,6 +29,7 @@ The current repository already supports:
 - a 4-bit virtual CPU with RAM, flags, jumps, calls, and returns
 - arithmetic, logic, comparisons, `if`, `while`, `print`, and functions
 - arithmetic, logic, comparisons, multiplication, and boolean operators
+- boolean literals `true` and `false`
 - function-local scope with global reads when names are not shadowed
 - block-local `let` declarations inside functions
 - explicit global writes from inside functions through `global name = expr`
@@ -86,6 +87,7 @@ print max(6, 9)
 - Registers and RAM are currently 4-bit.
 - Comparisons return normalized booleans: `1` or `0`.
 - `not`, `and`, and `or` return normalized booleans: `1` or `0`.
+- Chained comparisons like `1 < x < 7` are supported.
 - Function scope is static and compiler-managed in the current implementation.
 - `let` inside function blocks creates block-local bindings.
 - Global writes inside functions are explicit: `global total = expr`.
@@ -108,7 +110,7 @@ Verification currently included in the repo:
 - Memory: `51/51`
 - ALU: `22/22`
 - CPU programs: `4/4`
-- Compiler programs: `16/16`
+- Compiler programs: `17/17`
 
 ## Repo guide
 

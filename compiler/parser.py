@@ -31,6 +31,10 @@ class NodoNum:
     valor: int
 
 @dataclass
+class NodoBool:
+    valor: bool
+
+@dataclass
 class NodoID:
     nombre: str
 
@@ -39,6 +43,11 @@ class NodoBinOp:
     op:  str
     izq: Any
     der: Any
+
+@dataclass
+class NodoCompareChain:
+    primero: Any
+    comparaciones: List[tuple[str, Any]]
 
 @dataclass
 class NodoUnOp:
@@ -146,11 +155,14 @@ class Parser:
 
     def parse_comparacion(self) -> Any:
         izq = self.parse_aritmetica()
+        comparaciones = []
         while self.actual().tipo == TipoToken.COMP:
             op  = self.consumir().valor
             der = self.parse_aritmetica()
-            izq = NodoBinOp(op, izq, der)
-        return izq
+            comparaciones.append((op, der))
+        if not comparaciones:
+            return izq
+        return NodoCompareChain(izq, comparaciones)
 
     def parse_aritmetica(self) -> Any:
         izq = self.parse_termino()
@@ -185,6 +197,12 @@ class Parser:
         if t.tipo == TipoToken.NUM:
             self.consumir()
             return NodoNum(t.valor)
+        if t.tipo == TipoToken.TRUE:
+            self.consumir()
+            return NodoBool(True)
+        if t.tipo == TipoToken.FALSE:
+            self.consumir()
+            return NodoBool(False)
         if t.tipo == TipoToken.ID:
             if self.ver().tipo == TipoToken.LPAREN:
                 return self.parse_llamada()

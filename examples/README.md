@@ -68,6 +68,12 @@ Demuestra `elif`, `break` y `continue` dentro de un programa compacto.
 
 Salida esperada: `2, 1, 2, 4, 5, 0, 1`
 
+### arreglos.tie
+Demuestra arreglos de tamaño fijo con lectura por indice constante
+y variable, ademas de escritura por indice.
+
+Salida esperada: `3, 5, 9`
+
 ## Sintaxis oficial
 
 Para v1.0, la sintaxis pública recomendada en ejemplos es la forma

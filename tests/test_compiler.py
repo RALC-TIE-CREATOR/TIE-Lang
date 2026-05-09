@@ -5,7 +5,7 @@ Tests del compilador TIE-Lang v1.0.
 Verifica el pipeline completo:
     fuente → Lexer → Parser → AST → Compilador → CPU
 
-Programas verificados: 20/20 correctos.
+Programas verificados: 23/23 correctos.
 """
 
 import sys
@@ -415,6 +415,59 @@ while i < 5:
     print()
 
 
+def test_arreglos_indice_constante():
+    """P21: literal de arreglo y lectura por indice constante."""
+    print("── P21: Arreglos / indice constante ─────")
+    resultado = compile_and_run("""
+let xs = [2, 4, 6]
+print xs[0]
+print xs[2]
+""", titulo="P21", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [2, 6]
+    print(f"  Salida: {salida}  esperado=[2, 6]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
+def test_arreglos_mutacion():
+    """P22: escritura a arreglo por indice constante."""
+    print("── P22: Arreglos / mutacion ─────────────")
+    resultado = compile_and_run("""
+let xs = [1, 2, 3]
+xs[1] = 9
+print xs[0]
+print xs[1]
+print xs[2]
+""", titulo="P22", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [1, 9, 3]
+    print(f"  Salida: {salida}  esperado=[1, 9, 3]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
+def test_arreglos_indice_dinamico():
+    """P23: lectura y escritura con indice variable."""
+    print("── P23: Arreglos / indice dinamico ──────")
+    resultado = compile_and_run("""
+let xs = [3, 5, 7]
+let i = 1
+print xs[i]
+i = 2
+xs[i] = 9
+print xs[2]
+""", titulo="P23", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [5, 9]
+    print(f"  Salida: {salida}  esperado=[5, 9]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
 if __name__ == "__main__":
     print("=" * 50)
     print("  TIE-Lang — Tests: Compilador v1.0")
@@ -440,4 +493,7 @@ if __name__ == "__main__":
     test_elif()
     test_break()
     test_continue()
-    print("✅ Compilador completo — 20/20 programas correctos")
+    test_arreglos_indice_constante()
+    test_arreglos_mutacion()
+    test_arreglos_indice_dinamico()
+    print("✅ Compilador completo — 23/23 programas correctos")

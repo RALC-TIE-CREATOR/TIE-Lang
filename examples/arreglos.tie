@@ -1,0 +1,10 @@
+let xs = [3, 5, 7]
+let i = 1
+
+print xs[0]
+print xs[i]
+
+i = 2
+xs[i] = 9
+
+print xs[2]

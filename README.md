@@ -31,6 +31,7 @@ The current repository already supports:
 - arithmetic, logic, comparisons, multiplication, and boolean operators
 - boolean literals `true` and `false`
 - `elif`, `break`, and `continue`
+- fixed-size arrays with literals, indexing, and indexed assignment
 - function-local scope with global reads when names are not shadowed
 - block-local `let` declarations inside functions
 - explicit global writes from inside functions through `global name = expr`
@@ -53,6 +54,7 @@ tie examples/fibonacci.tie
 tie examples/funciones.tie
 tie examples/estado_global.tie
 tie examples/control_flujo.tie
+tie examples/arreglos.tie
 tie --list-examples
 ```
 
@@ -92,6 +94,8 @@ print max(6, 9)
 - Chained comparisons like `1 < x < 7` are supported.
 - `if` chains may use `elif`.
 - `while` loops support `break` and `continue`.
+- Arrays use fixed-size literals like `[1, 2, 3]`.
+- Array reads and writes use `xs[i]` and `xs[i] = v`.
 - Function scope is static and compiler-managed in the current implementation.
 - `let` inside function blocks creates block-local bindings.
 - Global writes inside functions are explicit: `global total = expr`.
@@ -114,7 +118,7 @@ Verification currently included in the repo:
 - Memory: `51/51`
 - ALU: `22/22`
 - CPU programs: `4/4`
-- Compiler programs: `20/20`
+- Compiler programs: `23/23`
 
 ## Repo guide
 
@@ -142,7 +146,7 @@ The current implementation is intentionally compact:
 - 4-bit registers and RAM cells
 - 16 RAM cells in the present CPU model
 - up to 4 positional function arguments
-- no arrays, strings, or floating point yet
+- no strings or floating point yet
 - no full dynamic stack-frame model yet
 - recursion is not guaranteed by the current scope and RAM allocation strategy
 

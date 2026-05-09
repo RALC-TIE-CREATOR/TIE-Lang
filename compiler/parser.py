@@ -7,7 +7,7 @@ Convierte tokens en AST (Abstract Syntax Tree).
 Gramática:
     programa    = sentencia*
     sentencia   = asignar | print | if | while | break | continue | def | return | expr
-    asignar     = ('let')? ID '=' expr
+    asignar     = ('let')? ID '=' expr | ID '[' expr ']' '=' expr
     expr        = disyuncion
     disyuncion  = conjuncion ('or' conjuncion)*
     conjuncion  = comparacion ('and' comparacion)*
@@ -15,7 +15,7 @@ Gramática:
     aritmetica  = termino (('+' | '-' | '&' | '|' | '^') termino)*
     termino     = unaria ('*' unaria)*
     unaria      = ('~' | 'not') primario | primario
-    primario    = NUM | llamada | ID | '(' expr ')'
+    primario    = NUM | lista | llamada | index | ID | '(' expr ')'
     llamada     = ID '(' args ')'
 """
 
@@ -37,6 +37,15 @@ class NodoBool:
 @dataclass
 class NodoID:
     nombre: str
+
+@dataclass
+class NodoLista:
+    elementos: List[Any]
+
+@dataclass
+class NodoIndex:
+    nombre: str
+    indice: Any
 
 @dataclass
 class NodoBinOp:
@@ -63,6 +72,12 @@ class NodoAsignar:
 @dataclass
 class NodoGlobalAsignar:
     nombre: str
+    expr:   Any
+
+@dataclass
+class NodoIndexAsignar:
+    nombre: str
+    indice: Any
     expr:   Any
 
 @dataclass
@@ -140,6 +155,28 @@ class Parser:
         while self.actual().tipo == TipoToken.NEWLINE:
             self.consumir()
 
+    def _is_index_assignment(self) -> bool:
+        if self.actual().tipo != TipoToken.ID:
+            return False
+        if self.ver().tipo != TipoToken.LBRACKET:
+            return False
+
+        pos = self.pos + 1
+        depth = 0
+        while pos < len(self.tokens):
+            tok = self.tokens[pos]
+            if tok.tipo == TipoToken.LBRACKET:
+                depth += 1
+            elif tok.tipo == TipoToken.RBRACKET:
+                depth -= 1
+                if depth == 0:
+                    siguiente = (self.tokens[pos + 1]
+                                 if pos + 1 < len(self.tokens)
+                                 else Token(TipoToken.EOF, None))
+                    return siguiente.tipo == TipoToken.IGUAL
+            pos += 1
+        return False
+
     # ── Expresiones ──────────────────────────────────────────────────
 
     def parse_expr(self) -> Any:
@@ -211,9 +248,13 @@ class Parser:
         if t.tipo == TipoToken.FALSE:
             self.consumir()
             return NodoBool(False)
+        if t.tipo == TipoToken.LBRACKET:
+            return self.parse_lista()
         if t.tipo == TipoToken.ID:
             if self.ver().tipo == TipoToken.LPAREN:
                 return self.parse_llamada()
+            if self.ver().tipo == TipoToken.LBRACKET:
+                return self.parse_index()
             self.consumir()
             return NodoID(t.valor)
         if t.tipo == TipoToken.LPAREN:
@@ -236,6 +277,24 @@ class Parser:
         self.consumir(TipoToken.RPAREN)
         return NodoLlamar(nombre, args)
 
+    def parse_index(self) -> Any:
+        nombre = self.consumir(TipoToken.ID).valor
+        self.consumir(TipoToken.LBRACKET)
+        indice = self.parse_expr()
+        self.consumir(TipoToken.RBRACKET)
+        return NodoIndex(nombre, indice)
+
+    def parse_lista(self) -> Any:
+        self.consumir(TipoToken.LBRACKET)
+        elementos = []
+        while self.actual().tipo != TipoToken.RBRACKET:
+            elementos.append(self.parse_expr())
+            if (self.actual().tipo == TipoToken.OP and
+                    self.actual().valor == ','):
+                self.consumir()
+        self.consumir(TipoToken.RBRACKET)
+        return NodoLista(elementos)
+
     # ── Sentencias ───────────────────────────────────────────────────
 
     def parse_sentencia(self) -> Any:
@@ -248,6 +307,16 @@ class Parser:
             expr = self.parse_expr()
             self._skip_newlines()
             return NodoAsignar(nombre, expr, declaracion=True)
+
+        if self._is_index_assignment():
+            nombre = self.consumir(TipoToken.ID).valor
+            self.consumir(TipoToken.LBRACKET)
+            indice = self.parse_expr()
+            self.consumir(TipoToken.RBRACKET)
+            self.consumir(TipoToken.IGUAL)
+            expr = self.parse_expr()
+            self._skip_newlines()
+            return NodoIndexAsignar(nombre, indice, expr)
 
         if (t.tipo == TipoToken.ID and
                 self.ver().tipo == TipoToken.IGUAL):

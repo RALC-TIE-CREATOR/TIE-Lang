@@ -53,7 +53,9 @@ Supported expression forms:
 
 - integer literals
 - boolean literals `true`, `false`
+- array literals such as `[1, 2, 3]`
 - identifiers
+- indexed array reads such as `xs[1]` or `xs[i]`
 - unary `~`
 - unary `not`
 - binary `+`, `-`, `*`, `&`, `|`, `^`
@@ -61,6 +63,11 @@ Supported expression forms:
 - comparisons `==`, `!=`, `<`, `>`, `<=`, `>=`
 - chained comparisons such as `a < b < c`
 - function calls
+
+Supported data updates:
+
+- indexed array writes such as `xs[1] = 9`
+- indexed array writes with dynamic indices such as `xs[i] = 9`
 
 ## Functions
 
@@ -147,6 +154,7 @@ Example:
 ## Memory model
 
 - Variables are assigned fixed RAM slots by name during compilation.
+- Arrays are assigned contiguous RAM slots by name during compilation.
 - A global variable first appears when assigned or referenced at top level.
 - A function-local variable first appears when assigned inside that function, or when it is declared as a parameter.
 - RAM is shared across the current compiled program.
@@ -154,6 +162,9 @@ Example:
 - Function-local slots are separate from global slots, so local temporaries do not overwrite top-level variables by name.
 - Explicit global writes always target the top-level slot for that name, even when a local variable with the same spelling exists.
 - Nested blocks inside functions have their own compile-time scope for `let` declarations.
+- Arrays currently have fixed length after declaration.
+- Array literals are intended for assignment contexts such as `let xs = [1, 2, 3]`.
+- Dynamic array indexing is compiled as explicit comparison-and-branch dispatch over the valid positions of that array.
 
 ## Current limits
 
@@ -164,8 +175,9 @@ Known implementation limits in v1.0:
 - up to 4 function arguments
 - no floating point
 - no strings
-- no arrays
 - `break` and `continue` are only valid inside `while`
+- arrays are fixed-size and 1-dimensional in the current model
+- arrays cannot yet be passed around as first-class values
 - function scope is static at compile time, not a full dynamic stack-frame model
 - recursion is not guaranteed by the current RAM-slot allocation approach
 

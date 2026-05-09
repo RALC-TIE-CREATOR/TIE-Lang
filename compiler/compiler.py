@@ -15,9 +15,10 @@ compile_and_run() es el punto de entrada principal.
 from typing import List, Dict
 from .lexer import Lexer
 from .parser import (
-    Parser, NodoNum, NodoBool, NodoID, NodoBinOp, NodoCompareChain, NodoUnOp,
-    NodoAsignar, NodoGlobalAsignar, NodoIf, NodoWhile, NodoDef,
-    NodoLlamar, NodoReturn, NodoPrint, NodoBreak, NodoContinue
+    Parser, NodoNum, NodoBool, NodoID, NodoLista, NodoIndex, NodoBinOp,
+    NodoCompareChain, NodoUnOp, NodoAsignar, NodoGlobalAsignar,
+    NodoIndexAsignar, NodoIf, NodoWhile, NodoDef, NodoLlamar,
+    NodoReturn, NodoPrint, NodoBreak, NodoContinue
 )
 import sys
 import os
@@ -36,6 +37,7 @@ class Compilador:
         self.next_addr:  int = 0
         self.next_label: int = 0
         self.scope_stack: List[Dict[str, int]] = [self.variables]
+        self.array_scopes: List[Dict[str, tuple[int, int]]] = [{}]
         self.in_function: bool = False
         self.loop_stack: List[tuple[str, str]] = []
 
@@ -52,12 +54,152 @@ class Compilador:
     def _scope_actual(self) -> Dict[str, int]:
         return self.scope_stack[-1]
 
+    def _array_scope_actual(self) -> Dict[str, tuple[int, int]]:
+        return self.array_scopes[-1]
+
     def _push_scope(self):
         self.scope_stack.append({})
+        self.array_scopes.append({})
 
     def _pop_scope(self):
         if len(self.scope_stack) > 1:
             self.scope_stack.pop()
+            self.array_scopes.pop()
+
+    def _lookup_array(self, nombre: str):
+        if self.in_function:
+            for scope in reversed(self.array_scopes[1:]):
+                if nombre in scope:
+                    return scope[nombre]
+        return self.array_scopes[0].get(nombre)
+
+    def _resolve_array_scope(self, nombre: str):
+        if self.in_function:
+            for scope in reversed(self.array_scopes[1:]):
+                if nombre in scope:
+                    return scope
+        if nombre in self.array_scopes[0]:
+            return self.array_scopes[0]
+        return None
+
+    def _alloc_array(self, scope: Dict[str, tuple[int, int]],
+                     nombre: str, longitud: int) -> tuple[int, int]:
+        if nombre in scope:
+            base, existente = scope[nombre]
+            if existente != longitud:
+                raise SyntaxError(
+                    f"El arreglo '{nombre}' ya existe con longitud {existente}")
+            return base, existente
+        if nombre in self.variables and scope is not self.array_scopes[0]:
+            pass
+        base = self.next_addr
+        self.next_addr += longitud
+        scope[nombre] = (base, longitud)
+        return base, longitud
+
+    def _asignar_lista(self, nombre: str, nodo_lista: NodoLista,
+                       declaracion: bool = False, global_explicito: bool = False):
+        elementos = nodo_lista.elementos
+        longitud = len(elementos)
+        if longitud == 0:
+            raise SyntaxError("Los arreglos vacios aun no estan soportados")
+
+        if global_explicito:
+            scope = self.array_scopes[0]
+            if nombre in self.variables:
+                raise SyntaxError(
+                    f"'{nombre}' ya existe como escalar global")
+        elif declaracion:
+            scope = self.array_scopes[0] if not self.in_function else self._array_scope_actual()
+            scope_escalar = self.variables if scope is self.array_scopes[0] else self._scope_actual()
+            if nombre in scope_escalar:
+                raise SyntaxError(
+                    f"'{nombre}' ya existe como variable escalar")
+        else:
+            scope = self._resolve_array_scope(nombre)
+            if scope is None:
+                raise SyntaxError(
+                    f"El arreglo '{nombre}' debe declararse con let antes de reasignarse")
+
+        if not global_explicito and not declaracion and nombre in self.variables and scope is self.array_scopes[0]:
+            pass
+
+        base, existente = self._alloc_array(scope, nombre, longitud)
+        if existente != longitud:
+            raise SyntaxError(
+                f"El arreglo '{nombre}' esperaba {existente} elementos")
+
+        for offset, expr in enumerate(elementos):
+            self.compilar_expr(expr, 'R0')
+            self._emit(Operacion.STORE, None, 'R0', str(base + offset))
+
+    def _emit_array_load(self, nombre: str, indice, reg: str) -> str:
+        info = self._lookup_array(nombre)
+        if info is None:
+            raise SyntaxError(f"Arreglo no definido: {nombre}")
+        base, longitud = info
+
+        if isinstance(indice, NodoNum):
+            if indice.valor < 0 or indice.valor >= longitud:
+                raise SyntaxError(
+                    f"Indice fuera de rango para '{nombre}': {indice.valor}")
+            self._emit(Operacion.LOAD_M, reg, str(base + indice.valor))
+            return reg
+
+        self.compilar_expr(indice, 'R1')
+        idx_temp = self._addr_temp()
+        self._emit(Operacion.STORE, None, 'R1', str(idx_temp))
+        etq_fin = self._nueva_etiqueta('arrfin')
+        etq_default = self._nueva_etiqueta('arrdefault')
+        etiquetas_match = [self._nueva_etiqueta('arrmatch')
+                           for _ in range(longitud)]
+
+        for i, etq_match in enumerate(etiquetas_match):
+            self._emit(Operacion.LOAD_M, 'R1', str(idx_temp))
+            self._emit(Operacion.CMP, None, 'R1', str(i))
+            self._emit(Operacion.JZ, None, etq_match)
+
+        self._emit(Operacion.JMP, None, etq_default)
+        for i, etq_match in enumerate(etiquetas_match):
+            self._emit(Operacion.LOAD_M, reg, str(base + i), label=etq_match)
+            self._emit(Operacion.JMP, None, etq_fin)
+        self._emit(Operacion.LOAD, reg, '0', label=etq_default)
+        self._emit(Operacion.LOAD, reg, reg, label=etq_fin)
+        return reg
+
+    def _emit_array_store(self, nombre: str, indice, valor_reg: str = 'R0'):
+        info = self._lookup_array(nombre)
+        if info is None:
+            raise SyntaxError(f"Arreglo no definido: {nombre}")
+        base, longitud = info
+
+        if isinstance(indice, NodoNum):
+            if indice.valor < 0 or indice.valor >= longitud:
+                raise SyntaxError(
+                    f"Indice fuera de rango para '{nombre}': {indice.valor}")
+            self._emit(Operacion.STORE, None, valor_reg, str(base + indice.valor))
+            return
+
+        valor_temp = self._addr_temp()
+        idx_temp = self._addr_temp()
+        self._emit(Operacion.STORE, None, valor_reg, str(valor_temp))
+        self.compilar_expr(indice, 'R1')
+        self._emit(Operacion.STORE, None, 'R1', str(idx_temp))
+        etq_fin = self._nueva_etiqueta('arrstorefin')
+        etiquetas_match = [self._nueva_etiqueta('arrstore')
+                           for _ in range(longitud)]
+
+        for i, etq_match in enumerate(etiquetas_match):
+            self._emit(Operacion.LOAD_M, 'R1', str(idx_temp))
+            self._emit(Operacion.CMP, None, 'R1', str(i))
+            self._emit(Operacion.JZ, None, etq_match)
+
+        self._emit(Operacion.JMP, None, etq_fin)
+        for i, etq_match in enumerate(etiquetas_match):
+            self._emit(Operacion.LOAD_M, 'R0', str(valor_temp), label=etq_match)
+            self._emit(Operacion.STORE, None, 'R0', str(base + i))
+            self._emit(Operacion.JMP, None, etq_fin)
+        self._emit(Operacion.LOAD, 'R3', 'R3', label=etq_fin)
 
     def _addr_lectura(self, nombre: str) -> int:
         if self.in_function:
@@ -194,10 +336,20 @@ class Compilador:
             self._emit(Operacion.LOAD, reg, '1' if nodo.valor else '0')
             return reg
 
+        if isinstance(nodo, NodoLista):
+            raise SyntaxError(
+                "Los literales de arreglo solo pueden usarse en asignaciones")
+
         if isinstance(nodo, NodoID):
+            if self._lookup_array(nodo.nombre) is not None:
+                raise SyntaxError(
+                    f"El arreglo '{nodo.nombre}' debe usarse con indice")
             self._emit(Operacion.LOAD_M, reg,
                        str(self._addr_lectura(nodo.nombre)))
             return reg
+
+        if isinstance(nodo, NodoIndex):
+            return self._emit_array_load(nodo.nombre, nodo.indice, reg)
 
         if isinstance(nodo, NodoUnOp):
             self.compilar_expr(nodo.operando, reg)
@@ -313,6 +465,16 @@ class Compilador:
     def compilar_stmt(self, nodo):
 
         if isinstance(nodo, NodoAsignar):
+            if isinstance(nodo.expr, NodoLista):
+                self._asignar_lista(
+                    nodo.nombre,
+                    nodo.expr,
+                    declaracion=nodo.declaracion,
+                )
+                return
+            if self._lookup_array(nodo.nombre) is not None:
+                raise SyntaxError(
+                    f"El arreglo '{nodo.nombre}' no puede recibir un escalar directo")
             self.compilar_expr(nodo.expr, 'R0')
             self._emit(Operacion.STORE, None, 'R0',
                        str(self._addr_escritura(
@@ -320,9 +482,20 @@ class Compilador:
                            declaracion=nodo.declaracion)))
 
         elif isinstance(nodo, NodoGlobalAsignar):
+            if isinstance(nodo.expr, NodoLista):
+                self._asignar_lista(
+                    nodo.nombre,
+                    nodo.expr,
+                    global_explicito=True,
+                )
+                return
             self.compilar_expr(nodo.expr, 'R0')
             self._emit(Operacion.STORE, None, 'R0',
                        str(self._addr_global(nodo.nombre)))
+
+        elif isinstance(nodo, NodoIndexAsignar):
+            self.compilar_expr(nodo.expr, 'R0')
+            self._emit_array_store(nodo.nombre, nodo.indice, 'R0')
 
         elif isinstance(nodo, NodoPrint):
             self.compilar_expr(nodo.expr, 'R0')

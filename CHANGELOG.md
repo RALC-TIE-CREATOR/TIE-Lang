@@ -29,7 +29,8 @@ Current work on `main` after `v0.2.0` includes:
 - richer expressions with `*`, `not`, `and`, and `or`
 - chained comparisons and boolean literals `true` / `false`
 - `elif`, `break`, and `continue`
-- stronger compiler coverage, now including 20 runnable compiler programs
+- fixed-size arrays with literals, indexed reads, and indexed writes
+- stronger compiler coverage, now including 23 runnable compiler programs
 
 ## v0.1.0
 

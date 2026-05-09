@@ -51,6 +51,12 @@ Demuestra que los comparadores producen booleanos normalizados.
 
 Salida esperada: `1, 0, 1, 1, 1, 1`
 
+### expresiones.tie
+Demuestra multiplicacion, precedencia aritmetica y operadores
+logicos normalizados.
+
+Salida esperada: `14, 10, 1, 0, 1, 1`
+
 ### estado_global.tie
 Demuestra escritura explicita al espacio global desde una funcion
 y desde el programa principal.

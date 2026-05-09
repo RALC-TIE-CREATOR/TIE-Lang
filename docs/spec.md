@@ -51,7 +51,9 @@ Supported expression forms:
 - integer literals
 - identifiers
 - unary `~`
-- binary `+`, `-`, `&`, `|`, `^`
+- unary `not`
+- binary `+`, `-`, `*`, `&`, `|`, `^`
+- logical `and`, `or`
 - comparisons `==`, `!=`, `<`, `>`, `<=`, `>=`
 - function calls
 

@@ -23,6 +23,9 @@ class TipoToken(Enum):
     RETURN  = auto()   # return
     PRINT   = auto()   # print
     GLOBAL  = auto()   # global
+    AND     = auto()   # and
+    OR_KW   = auto()   # or
+    NOT_KW  = auto()   # not
     OP      = auto()   # + - & | ^ ~ ,
     COMP    = auto()   # == != < > <= >=
     IGUAL   = auto()   # =
@@ -44,6 +47,9 @@ PALABRAS_CLAVE = {
     'return': TipoToken.RETURN,
     'print':  TipoToken.PRINT,
     'global': TipoToken.GLOBAL,
+    'and':    TipoToken.AND,
+    'or':     TipoToken.OR_KW,
+    'not':    TipoToken.NOT_KW,
 }
 
 
@@ -142,7 +148,7 @@ class Lexer:
                     i += 1
                     continue
 
-                if c in '+-&|^~,':
+                if c in '+-*&|^~,':
                     self.tokens.append(
                         Token(TipoToken.OP, c, nlinea))
                     i += 1

@@ -26,6 +26,7 @@ Current work on `main` after `v0.2.0` includes:
 
 - further language growth after the v0.2.0 baseline
 - explicit global writes from functions through `global name = expr`
+- richer expressions with `*`, `not`, `and`, and `or`
 
 ## v0.1.0
 

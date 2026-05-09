@@ -1,0 +1,10 @@
+# expresiones.tie
+# Demuestra multiplicacion y operadores logicos.
+# Salida esperada: 14, 10, 1, 0, 1, 1
+
+print 2 + 3 * 4
+print (2 + 3) * 2
+print not 0
+print 1 and 0
+print 0 or 5
+print (3 < 4) or (2 < 1)

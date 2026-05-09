@@ -8,10 +8,13 @@ Gramática:
     programa    = sentencia*
     sentencia   = asignar | print | if | while | def | return | expr
     asignar     = ('let')? ID '=' expr
-    expr        = comparacion
+    expr        = disyuncion
+    disyuncion  = conjuncion ('or' conjuncion)*
+    conjuncion  = comparacion ('and' comparacion)*
     comparacion = aritmetica (COMP aritmetica)?
-    aritmetica  = unaria (('+' | '-' | '&' | '|' | '^') unaria)*
-    unaria      = '~' primario | primario
+    aritmetica  = termino (('+' | '-' | '&' | '|' | '^') termino)*
+    termino     = unaria ('*' unaria)*
+    unaria      = ('~' | 'not') primario | primario
     primario    = NUM | llamada | ID | '(' expr ')'
     llamada     = ID '(' args ')'
 """
@@ -123,7 +126,23 @@ class Parser:
     # ── Expresiones ──────────────────────────────────────────────────
 
     def parse_expr(self) -> Any:
-        return self.parse_comparacion()
+        return self.parse_disyuncion()
+
+    def parse_disyuncion(self) -> Any:
+        izq = self.parse_conjuncion()
+        while self.actual().tipo == TipoToken.OR_KW:
+            self.consumir()
+            der = self.parse_conjuncion()
+            izq = NodoBinOp('or', izq, der)
+        return izq
+
+    def parse_conjuncion(self) -> Any:
+        izq = self.parse_comparacion()
+        while self.actual().tipo == TipoToken.AND:
+            self.consumir()
+            der = self.parse_comparacion()
+            izq = NodoBinOp('and', izq, der)
+        return izq
 
     def parse_comparacion(self) -> Any:
         izq = self.parse_aritmetica()
@@ -134,9 +153,18 @@ class Parser:
         return izq
 
     def parse_aritmetica(self) -> Any:
-        izq = self.parse_unaria()
+        izq = self.parse_termino()
         while (self.actual().tipo == TipoToken.OP and
                self.actual().valor in '+-&|^'):
+            op  = self.consumir().valor
+            der = self.parse_termino()
+            izq = NodoBinOp(op, izq, der)
+        return izq
+
+    def parse_termino(self) -> Any:
+        izq = self.parse_unaria()
+        while (self.actual().tipo == TipoToken.OP and
+               self.actual().valor == '*'):
             op  = self.consumir().valor
             der = self.parse_unaria()
             izq = NodoBinOp(op, izq, der)
@@ -147,6 +175,9 @@ class Parser:
                 self.actual().valor == '~'):
             self.consumir()
             return NodoUnOp('~', self.parse_primario())
+        if self.actual().tipo == TipoToken.NOT_KW:
+            self.consumir()
+            return NodoUnOp('not', self.parse_primario())
         return self.parse_primario()
 
     def parse_primario(self) -> Any:

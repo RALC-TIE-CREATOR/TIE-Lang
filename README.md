@@ -28,6 +28,7 @@ The current repository already supports:
 - a lexer, parser, and compiler for a small indentation-based language
 - a 4-bit virtual CPU with RAM, flags, jumps, calls, and returns
 - arithmetic, logic, comparisons, `if`, `while`, `print`, and functions
+- arithmetic, logic, comparisons, multiplication, and boolean operators
 - function-local scope with global reads when names are not shadowed
 - block-local `let` declarations inside functions
 - explicit global writes from inside functions through `global name = expr`
@@ -84,6 +85,7 @@ print max(6, 9)
 - Legacy whitespace syntax `f(a b)` still works in v1.0 for compatibility.
 - Registers and RAM are currently 4-bit.
 - Comparisons return normalized booleans: `1` or `0`.
+- `not`, `and`, and `or` return normalized booleans: `1` or `0`.
 - Function scope is static and compiler-managed in the current implementation.
 - `let` inside function blocks creates block-local bindings.
 - Global writes inside functions are explicit: `global total = expr`.
@@ -106,7 +108,7 @@ Verification currently included in the repo:
 - Memory: `51/51`
 - ALU: `22/22`
 - CPU programs: `4/4`
-- Compiler programs: `14/14`
+- Compiler programs: `16/16`
 
 ## Repo guide
 

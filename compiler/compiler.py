@@ -78,10 +78,25 @@ class Compilador:
     def _addr_global(self, nombre: str) -> int:
         return self._alloc_addr(self.variables, nombre)
 
+    def _addr_temp(self) -> int:
+        addr = self.next_addr
+        self.next_addr += 1
+        return addr
+
     def _emit(self, op, dest=None, src1=None,
               src2=None, label=None):
         self.codigo.append(
             Instruccion(op, dest, src1, src2, label))
+
+    def _emit_bool_desde_cmp(self, reg: str, true_on_zero: bool = False):
+        etq_si  = self._nueva_etiqueta('si')
+        etq_no  = self._nueva_etiqueta('no')
+        etq_fin = self._nueva_etiqueta('fin')
+        self._emit(Operacion.JZ, None, etq_si if true_on_zero else etq_no)
+        self._emit(Operacion.LOAD, reg, '1' if not true_on_zero else '0')
+        self._emit(Operacion.JMP, None, etq_fin)
+        self._emit(Operacion.LOAD, reg, '0' if not true_on_zero else '1', label=etq_si if true_on_zero else etq_no)
+        self._emit(Operacion.LOAD, reg, reg, label=etq_fin)
 
     def _compilar_bloque(self, stmts, scope_local: bool = False):
         if scope_local:
@@ -106,12 +121,19 @@ class Compilador:
 
         if isinstance(nodo, NodoUnOp):
             self.compilar_expr(nodo.operando, reg)
-            self._emit(Operacion.NOT, reg, reg)
+            if nodo.op == '~':
+                self._emit(Operacion.NOT, reg, reg)
+            elif nodo.op == 'not':
+                self._emit(Operacion.CMP, None, reg, '0')
+                self._emit_bool_desde_cmp(reg, true_on_zero=True)
             return reg
 
         if isinstance(nodo, NodoBinOp):
             self.compilar_expr(nodo.izq, 'R0')
+            temp_izq = self._addr_temp()
+            self._emit(Operacion.STORE, None, 'R0', str(temp_izq))
             self.compilar_expr(nodo.der, 'R1')
+            self._emit(Operacion.LOAD_M, 'R0', str(temp_izq))
 
             op_map = {
                 '+': Operacion.SUMA,
@@ -123,6 +145,48 @@ class Compilador:
 
             if nodo.op in op_map:
                 self._emit(op_map[nodo.op], reg, 'R0', 'R1')
+                return reg
+
+            if nodo.op == '*':
+                etq_loop = self._nueva_etiqueta('mul')
+                etq_fin  = self._nueva_etiqueta('endmul')
+                self._emit(Operacion.LOAD, 'R2', '0')
+                self._emit(Operacion.MOVE, 'R3', 'R1')
+                self._emit(Operacion.CMP, None, 'R3', '0', label=etq_loop)
+                self._emit(Operacion.JZ, None, etq_fin)
+                self._emit(Operacion.SUMA, 'R2', 'R2', 'R0')
+                self._emit(Operacion.RESTA, 'R3', 'R3', '1')
+                self._emit(Operacion.JMP, None, etq_loop)
+                self._emit(Operacion.MOVE, reg, 'R2', label=etq_fin)
+                return reg
+
+            if nodo.op == 'and':
+                etq_no  = self._nueva_etiqueta('no')
+                etq_fin = self._nueva_etiqueta('fin')
+                self._emit(Operacion.CMP, None, 'R0', '0')
+                self._emit(Operacion.JZ, None, etq_no)
+                self._emit(Operacion.CMP, None, 'R1', '0')
+                self._emit(Operacion.JZ, None, etq_no)
+                self._emit(Operacion.LOAD, reg, '1')
+                self._emit(Operacion.JMP, None, etq_fin)
+                self._emit(Operacion.LOAD, reg, '0', label=etq_no)
+                self._emit(Operacion.LOAD, reg, reg, label=etq_fin)
+                return reg
+
+            if nodo.op == 'or':
+                etq_test_rhs = self._nueva_etiqueta('testrhs')
+                etq_no       = self._nueva_etiqueta('no')
+                etq_fin      = self._nueva_etiqueta('fin')
+                self._emit(Operacion.CMP, None, 'R0', '0')
+                self._emit(Operacion.JZ, None, etq_test_rhs)
+                self._emit(Operacion.LOAD, reg, '1')
+                self._emit(Operacion.JMP, None, etq_fin)
+                self._emit(Operacion.CMP, None, 'R1', '0', label=etq_test_rhs)
+                self._emit(Operacion.JZ, None, etq_no)
+                self._emit(Operacion.LOAD, reg, '1')
+                self._emit(Operacion.JMP, None, etq_fin)
+                self._emit(Operacion.LOAD, reg, '0', label=etq_no)
+                self._emit(Operacion.LOAD, reg, reg, label=etq_fin)
                 return reg
 
             if nodo.op in ('==', '!=', '<', '>', '<=', '>='):

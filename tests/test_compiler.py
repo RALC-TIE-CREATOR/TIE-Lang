@@ -5,7 +5,7 @@ Tests del compilador TIE-Lang v1.0.
 Verifica el pipeline completo:
     fuente → Lexer → Parser → AST → Compilador → CPU
 
-Programas verificados: 14/14 correctos.
+Programas verificados: 16/16 correctos.
 """
 
 import sys
@@ -302,6 +302,43 @@ prueba()
     print()
 
 
+def test_multiplicacion_y_precedencia():
+    """P15: Multiplicacion y precedencia aritmetica."""
+    print("── P15: Multiplicacion ──────────────────")
+    resultado = compile_and_run("""
+print 2 + 3 * 4
+print (2 + 3) * 2
+print 3 * 5
+""", titulo="P15", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [14, 10, 15]
+    print(f"  Salida: {salida}  esperado=[14, 10, 15]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
+def test_operadores_logicos():
+    """P16: not, and, or con booleanos normalizados."""
+    print("── P16: Operadores logicos ──────────────")
+    resultado = compile_and_run("""
+print not 0
+print not 3
+print 1 and 0
+print 2 and 7
+print 0 or 5
+print 0 or 0
+print (3 < 4) and (2 < 1)
+print (3 < 4) or (2 < 1)
+""", titulo="P16", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [1, 0, 0, 1, 1, 0, 0, 1]
+    print(f"  Salida: {salida}  esperado=[1, 0, 0, 1, 1, 0, 0, 1]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
 if __name__ == "__main__":
     print("=" * 50)
     print("  TIE-Lang — Tests: Compilador v1.0")
@@ -321,4 +358,6 @@ if __name__ == "__main__":
     test_global_assignment_with_shadowing()
     test_block_scope_shadowing_inside_function()
     test_block_assignment_updates_outer_scope()
-    print("✅ Compilador completo — 14/14 programas correctos")
+    test_multiplicacion_y_precedencia()
+    test_operadores_logicos()
+    print("✅ Compilador completo — 16/16 programas correctos")

@@ -5,7 +5,7 @@ Tests del compilador TIE-Lang v1.0.
 Verifica el pipeline completo:
     fuente → Lexer → Parser → AST → Compilador → CPU
 
-Programas verificados: 23/23 correctos.
+Programas verificados: 27/27 correctos.
 """
 
 import sys
@@ -468,6 +468,92 @@ print xs[2]
     print()
 
 
+def test_arreglos_locales_en_funcion():
+    """P24: una funcion puede declarar y mutar su propio arreglo local."""
+    print("── P24: Arreglos locales en funcion ─────")
+    resultado = compile_and_run("""
+def prueba():
+    let xs = [1, 2, 3]
+    xs[1] = 8
+    print xs[0]
+    print xs[1]
+
+prueba()
+""", titulo="P24", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [1, 8]
+    print(f"  Salida: {salida}  esperado=[1, 8]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
+def test_lectura_de_arreglo_global_desde_funcion():
+    """P25: una funcion puede leer un arreglo global si no esta sombreado."""
+    print("── P25: Arreglo global leido en funcion ─")
+    resultado = compile_and_run("""
+let datos = [4, 6, 9]
+
+def leer(i):
+    return datos[i]
+
+print leer(2)
+print datos[0]
+""", titulo="P25", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [9, 4]
+    print(f"  Salida: {salida}  esperado=[9, 4]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
+def test_shadowing_escalar_sobre_arreglo_global():
+    """P26: un escalar local sombrea un arreglo global con el mismo nombre."""
+    print("── P26: Scalar sombreando arreglo global ─")
+    resultado = compile_and_run("""
+let xs = [3, 5, 7]
+
+def prueba():
+    let xs = 9
+    print xs
+
+prueba()
+print xs[1]
+""", titulo="P26", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [9, 5]
+    print(f"  Salida: {salida}  esperado=[9, 5]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
+def test_shadowing_de_arreglo_en_bloque():
+    """P27: let de arreglo dentro de bloque crea shadowing local del global."""
+    print("── P27: Arreglo local de bloque ─────────")
+    resultado = compile_and_run("""
+let xs = [1, 2, 3]
+
+def prueba():
+    if true:
+        let xs = [8, 9]
+        print xs[0]
+        xs[1] = 6
+        print xs[1]
+    print xs[2]
+
+prueba()
+print xs[1]
+""", titulo="P27", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [8, 6, 3, 2]
+    print(f"  Salida: {salida}  esperado=[8, 6, 3, 2]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
 if __name__ == "__main__":
     print("=" * 50)
     print("  TIE-Lang — Tests: Compilador v1.0")
@@ -496,4 +582,8 @@ if __name__ == "__main__":
     test_arreglos_indice_constante()
     test_arreglos_mutacion()
     test_arreglos_indice_dinamico()
-    print("✅ Compilador completo — 23/23 programas correctos")
+    test_arreglos_locales_en_funcion()
+    test_lectura_de_arreglo_global_desde_funcion()
+    test_shadowing_escalar_sobre_arreglo_global()
+    test_shadowing_de_arreglo_en_bloque()
+    print("✅ Compilador completo — 27/27 programas correctos")

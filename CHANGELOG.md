@@ -30,7 +30,8 @@ Current work on `main` after `v0.2.0` includes:
 - chained comparisons and boolean literals `true` / `false`
 - `elif`, `break`, and `continue`
 - fixed-size arrays with literals, indexed reads, and indexed writes
-- stronger compiler coverage, now including 23 runnable compiler programs
+- stronger compiler coverage, now including 27 runnable compiler programs
+- array scope and shadowing semantics aligned with function and block-local bindings
 
 ## v0.1.0
 

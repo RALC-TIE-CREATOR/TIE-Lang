@@ -57,6 +57,13 @@ class Compilador:
     def _array_scope_actual(self) -> Dict[str, tuple[int, int]]:
         return self.array_scopes[-1]
 
+    def _binding_en_scope(self, escalar_scope, array_scope, nombre: str):
+        if nombre in escalar_scope:
+            return 'scalar', escalar_scope[nombre]
+        if nombre in array_scope:
+            return 'array', array_scope[nombre]
+        return None, None
+
     def _push_scope(self):
         self.scope_stack.append({})
         self.array_scopes.append({})
@@ -66,19 +73,38 @@ class Compilador:
             self.scope_stack.pop()
             self.array_scopes.pop()
 
-    def _lookup_array(self, nombre: str):
+    def _lookup_binding(self, nombre: str):
         if self.in_function:
-            for scope in reversed(self.array_scopes[1:]):
-                if nombre in scope:
-                    return scope[nombre]
-        return self.array_scopes[0].get(nombre)
+            for escalar_scope, array_scope in zip(
+                    reversed(self.scope_stack[1:]),
+                    reversed(self.array_scopes[1:])):
+                kind, value = self._binding_en_scope(
+                    escalar_scope, array_scope, nombre)
+                if kind is not None:
+                    return kind, value
+        return self._binding_en_scope(
+            self.variables, self.array_scopes[0], nombre)
+
+    def _lookup_array(self, nombre: str):
+        kind, value = self._lookup_binding(nombre)
+        if kind == 'array':
+            return value
+        return None
 
     def _resolve_array_scope(self, nombre: str):
         if self.in_function:
-            for scope in reversed(self.array_scopes[1:]):
-                if nombre in scope:
-                    return scope
-        if nombre in self.array_scopes[0]:
+            for escalar_scope, array_scope in zip(
+                    reversed(self.scope_stack[1:]),
+                    reversed(self.array_scopes[1:])):
+                kind, _ = self._binding_en_scope(
+                    escalar_scope, array_scope, nombre)
+                if kind == 'array':
+                    return array_scope
+                if kind == 'scalar':
+                    return None
+        kind, _ = self._binding_en_scope(
+            self.variables, self.array_scopes[0], nombre)
+        if kind == 'array':
             return self.array_scopes[0]
         return None
 
@@ -202,10 +228,12 @@ class Compilador:
         self._emit(Operacion.LOAD, 'R3', 'R3', label=etq_fin)
 
     def _addr_lectura(self, nombre: str) -> int:
-        if self.in_function:
-            for scope in reversed(self.scope_stack[1:]):
-                if nombre in scope:
-                    return scope[nombre]
+        kind, value = self._lookup_binding(nombre)
+        if kind == 'scalar':
+            return value
+        if kind == 'array':
+            raise SyntaxError(
+                f"El arreglo '{nombre}' debe usarse con indice")
         return self._alloc_addr(self.variables, nombre)
 
     def _addr_escritura(self, nombre: str, declaracion: bool = False) -> int:
@@ -341,9 +369,6 @@ class Compilador:
                 "Los literales de arreglo solo pueden usarse en asignaciones")
 
         if isinstance(nodo, NodoID):
-            if self._lookup_array(nodo.nombre) is not None:
-                raise SyntaxError(
-                    f"El arreglo '{nodo.nombre}' debe usarse con indice")
             self._emit(Operacion.LOAD_M, reg,
                        str(self._addr_lectura(nodo.nombre)))
             return reg
@@ -472,7 +497,13 @@ class Compilador:
                     declaracion=nodo.declaracion,
                 )
                 return
-            if self._lookup_array(nodo.nombre) is not None:
+            if nodo.declaracion:
+                array_scope = (self.array_scopes[0] if not self.in_function
+                               else self._array_scope_actual())
+                if nodo.nombre in array_scope:
+                    raise SyntaxError(
+                        f"'{nodo.nombre}' ya existe como arreglo")
+            elif self._lookup_array(nodo.nombre) is not None:
                 raise SyntaxError(
                     f"El arreglo '{nodo.nombre}' no puede recibir un escalar directo")
             self.compilar_expr(nodo.expr, 'R0')

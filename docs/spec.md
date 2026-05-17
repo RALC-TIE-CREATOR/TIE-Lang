@@ -165,6 +165,8 @@ Example:
 - Arrays currently have fixed length after declaration.
 - Array literals are intended for assignment contexts such as `let xs = [1, 2, 3]`.
 - Dynamic array indexing is compiled as explicit comparison-and-branch dispatch over the valid positions of that array.
+- Arrays follow the same lexical shadowing rules as scalar names.
+- A local scalar may shadow a global array, and a local array may shadow an outer scalar or array.
 
 ## Current limits
 

@@ -85,6 +85,12 @@ Demuestra simbolos ligeros como etiquetas compactas comparables.
 
 Salida esperada: `1, 0, 7, 9`
 
+### matrices.tie
+Demuestra matrices rectangulares 2D con acceso por indice constante
+y dinamico, ademas de escritura por celda.
+
+Salida esperada: `2, 3, 9`
+
 ## Sintaxis oficial
 
 Para v1.0, la sintaxis pública recomendada en ejemplos es la forma

@@ -7,7 +7,7 @@ Convierte tokens en AST (Abstract Syntax Tree).
 Gramática:
     programa    = sentencia*
     sentencia   = asignar | print | if | while | break | continue | def | return | expr
-    asignar     = ('let')? ID '=' expr | ID '[' expr ']' '=' expr
+    asignar     = ('let')? ID '=' expr | ID ('[' expr ']')+ '=' expr
     expr        = disyuncion
     disyuncion  = conjuncion ('or' conjuncion)*
     conjuncion  = comparacion ('and' comparacion)*
@@ -52,6 +52,12 @@ class NodoIndex:
     indice: Any
 
 @dataclass
+class NodoIndex2D:
+    nombre: str
+    fila: Any
+    columna: Any
+
+@dataclass
 class NodoBinOp:
     op:  str
     izq: Any
@@ -83,6 +89,13 @@ class NodoIndexAsignar:
     nombre: str
     indice: Any
     expr:   Any
+
+@dataclass
+class NodoIndex2DAsignar:
+    nombre: str
+    fila: Any
+    columna: Any
+    expr: Any
 
 @dataclass
 class NodoIf:
@@ -166,19 +179,24 @@ class Parser:
             return False
 
         pos = self.pos + 1
-        depth = 0
-        while pos < len(self.tokens):
-            tok = self.tokens[pos]
-            if tok.tipo == TipoToken.LBRACKET:
-                depth += 1
-            elif tok.tipo == TipoToken.RBRACKET:
-                depth -= 1
-                if depth == 0:
-                    siguiente = (self.tokens[pos + 1]
-                                 if pos + 1 < len(self.tokens)
-                                 else Token(TipoToken.EOF, None))
-                    return siguiente.tipo == TipoToken.IGUAL
-            pos += 1
+        while pos < len(self.tokens) and self.tokens[pos].tipo == TipoToken.LBRACKET:
+            depth = 0
+            while pos < len(self.tokens):
+                tok = self.tokens[pos]
+                if tok.tipo == TipoToken.LBRACKET:
+                    depth += 1
+                elif tok.tipo == TipoToken.RBRACKET:
+                    depth -= 1
+                    if depth == 0:
+                        pos += 1
+                        break
+                pos += 1
+            else:
+                return False
+        siguiente = (self.tokens[pos]
+                     if pos < len(self.tokens)
+                     else Token(TipoToken.EOF, None))
+        return siguiente.tipo == TipoToken.IGUAL
         return False
 
     # ── Expresiones ──────────────────────────────────────────────────
@@ -286,10 +304,17 @@ class Parser:
 
     def parse_index(self) -> Any:
         nombre = self.consumir(TipoToken.ID).valor
-        self.consumir(TipoToken.LBRACKET)
-        indice = self.parse_expr()
-        self.consumir(TipoToken.RBRACKET)
-        return NodoIndex(nombre, indice)
+        indices = []
+        while self.actual().tipo == TipoToken.LBRACKET:
+            self.consumir(TipoToken.LBRACKET)
+            indices.append(self.parse_expr())
+            self.consumir(TipoToken.RBRACKET)
+        if len(indices) == 1:
+            return NodoIndex(nombre, indices[0])
+        if len(indices) == 2:
+            return NodoIndex2D(nombre, indices[0], indices[1])
+        raise SyntaxError(
+            "TIE-Lang solo soporta actualmente indices de 1D o 2D")
 
     def parse_lista(self) -> Any:
         self.consumir(TipoToken.LBRACKET)
@@ -316,14 +341,16 @@ class Parser:
             return NodoAsignar(nombre, expr, declaracion=True)
 
         if self._is_index_assignment():
-            nombre = self.consumir(TipoToken.ID).valor
-            self.consumir(TipoToken.LBRACKET)
-            indice = self.parse_expr()
-            self.consumir(TipoToken.RBRACKET)
+            target = self.parse_index()
             self.consumir(TipoToken.IGUAL)
             expr = self.parse_expr()
             self._skip_newlines()
-            return NodoIndexAsignar(nombre, indice, expr)
+            if isinstance(target, NodoIndex):
+                return NodoIndexAsignar(target.nombre, target.indice, expr)
+            if isinstance(target, NodoIndex2D):
+                return NodoIndex2DAsignar(
+                    target.nombre, target.fila, target.columna, expr)
+            raise SyntaxError("Asignacion indexada invalida")
 
         if (t.tipo == TipoToken.ID and
                 self.ver().tipo == TipoToken.IGUAL):

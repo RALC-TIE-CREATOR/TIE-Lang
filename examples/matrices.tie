@@ -1,0 +1,11 @@
+let m = [[1, 2], [3, 4]]
+let i = 1
+let j = 0
+
+print m[0][1]
+print m[i][j]
+
+j = 1
+m[i][j] = 9
+
+print m[1][1]

@@ -55,8 +55,10 @@ Supported expression forms:
 - boolean literals `true`, `false`
 - lightweight symbol literals such as `@inicio`
 - array literals such as `[1, 2, 3]`
+- matrix literals such as `[[1, 2], [3, 4]]`
 - identifiers
 - indexed array reads such as `xs[1]` or `xs[i]`
+- indexed matrix reads such as `m[0][1]` or `m[i][j]`
 - unary `~`
 - unary `not`
 - binary `+`, `-`, `*`, `&`, `|`, `^`
@@ -75,6 +77,7 @@ Supported data updates:
 
 - indexed array writes such as `xs[1] = 9`
 - indexed array writes with dynamic indices such as `xs[i] = 9`
+- indexed matrix writes such as `m[1][0] = 9`
 
 ## Functions
 
@@ -171,8 +174,11 @@ Example:
 - Explicit global writes always target the top-level slot for that name, even when a local variable with the same spelling exists.
 - Nested blocks inside functions have their own compile-time scope for `let` declarations.
 - Arrays currently have fixed length after declaration.
+- Matrices are currently rectangular and 2-dimensional.
 - Array literals are intended for assignment contexts such as `let xs = [1, 2, 3]`.
+- Matrix literals are intended for assignment contexts such as `let m = [[1, 2], [3, 4]]`.
 - Dynamic array indexing is compiled as explicit comparison-and-branch dispatch over the valid positions of that array.
+- Dynamic matrix indexing is compiled as explicit comparison-and-branch dispatch over valid cell positions.
 - Arrays follow the same lexical shadowing rules as scalar names.
 - A local scalar may shadow a global array, and a local array may shadow an outer scalar or array.
 - Lightweight symbols are interned per program into compact 4-bit identifiers.
@@ -188,6 +194,7 @@ Known implementation limits in v1.0:
 - no strings
 - `break` and `continue` are only valid inside `while`
 - arrays are fixed-size and 1-dimensional in the current model
+- matrices are fixed-size and rectangular in the current model
 - arrays are passed by copy rather than by shared reference
 - symbol space is limited to 16 lightweight symbols per program
 - function scope is static at compile time, not a full dynamic stack-frame model

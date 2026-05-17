@@ -5,7 +5,7 @@ Tests del compilador TIE-Lang v1.0.
 Verifica el pipeline completo:
     fuente → Lexer → Parser → AST → Compilador → CPU
 
-Programas verificados: 31/31 correctos.
+Programas verificados: 34/34 correctos.
 """
 
 import sys
@@ -637,6 +637,61 @@ clasificar(fin)
     print()
 
 
+def test_matriz_2d_basica():
+    """P32: matriz 2D con acceso por indices constantes."""
+    print("── P32: Matriz 2D basica ────────────────")
+    resultado = compile_and_run("""
+let m = [[1, 2], [3, 4]]
+print m[0][1]
+print m[1][0]
+""", titulo="P32", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [2, 3]
+    print(f"  Salida: {salida}  esperado=[2, 3]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
+def test_matriz_2d_indices_dinamicos_y_escritura():
+    """P33: matriz 2D con indices variables y escritura."""
+    print("── P33: Matriz 2D dinamica ──────────────")
+    resultado = compile_and_run("""
+let m = [[1, 2], [3, 4]]
+let i = 1
+let j = 0
+print m[i][j]
+j = 1
+m[i][j] = 9
+print m[1][1]
+""", titulo="P33", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [3, 9]
+    print(f"  Salida: {salida}  esperado=[3, 9]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
+def test_matriz_local_en_funcion():
+    """P34: una funcion puede declarar y leer una matriz local."""
+    print("── P34: Matriz local en funcion ─────────")
+    resultado = compile_and_run("""
+def prueba():
+    let m = [[5, 6], [7, 8]]
+    print m[0][0]
+    print m[1][1]
+
+prueba()
+""", titulo="P34", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [5, 8]
+    print(f"  Salida: {salida}  esperado=[5, 8]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
 if __name__ == "__main__":
     print("=" * 50)
     print("  TIE-Lang — Tests: Compilador v1.0")
@@ -673,4 +728,7 @@ if __name__ == "__main__":
     test_builtins_de_arreglo()
     test_funcion_con_arreglo_literal()
     test_simbolos_ligeros()
-    print("✅ Compilador completo — 31/31 programas correctos")
+    test_matriz_2d_basica()
+    test_matriz_2d_indices_dinamicos_y_escritura()
+    test_matriz_local_en_funcion()
+    print("✅ Compilador completo — 34/34 programas correctos")

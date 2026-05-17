@@ -32,6 +32,7 @@ The current repository already supports:
 - boolean literals `true` and `false`
 - `elif`, `break`, and `continue`
 - fixed-size arrays with literals, indexing, and indexed assignment
+- rectangular 2D matrices with `m[fila][col]`
 - array scope and shadowing inside functions and nested blocks
 - array arguments passed to functions by copy
 - array builtins `len`, `first`, and `last`
@@ -61,6 +62,7 @@ tie examples/control_flujo.tie
 tie examples/arreglos.tie
 tie examples/arreglos_funciones.tie
 tie examples/simbolos.tie
+tie examples\matrices.tie
 tie --list-examples
 ```
 
@@ -102,6 +104,8 @@ print max(6, 9)
 - `while` loops support `break` and `continue`.
 - Arrays use fixed-size literals like `[1, 2, 3]`.
 - Array reads and writes use `xs[i]` and `xs[i] = v`.
+- Matrices use nested literals like `[[1, 2], [3, 4]]`.
+- Matrix reads and writes use `m[i][j]` and `m[i][j] = v`.
 - Arrays participate in the same lexical shadowing rules as scalars.
 - Arrays can be passed into functions by copy.
 - `len(xs)`, `first(xs)`, and `last(xs)` are built in.
@@ -128,7 +132,7 @@ Verification currently included in the repo:
 - Memory: `51/51`
 - ALU: `22/22`
 - CPU programs: `4/4`
-- Compiler programs: `31/31`
+- Compiler programs: `34/34`
 
 ## Repo guide
 

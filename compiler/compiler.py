@@ -16,9 +16,10 @@ from typing import List, Dict
 from .lexer import Lexer
 from .parser import (
     Parser, NodoNum, NodoBool, NodoID, NodoSymbol, NodoLista, NodoIndex,
-    NodoBinOp, NodoCompareChain, NodoUnOp, NodoAsignar, NodoGlobalAsignar,
-    NodoIndexAsignar, NodoIf, NodoWhile, NodoDef, NodoLlamar, NodoReturn,
-    NodoPrint, NodoBreak, NodoContinue
+    NodoIndex2D, NodoBinOp, NodoCompareChain, NodoUnOp, NodoAsignar,
+    NodoGlobalAsignar, NodoIndexAsignar, NodoIndex2DAsignar, NodoIf,
+    NodoWhile, NodoDef, NodoLlamar, NodoReturn, NodoPrint, NodoBreak,
+    NodoContinue
 )
 import sys
 import os
@@ -37,7 +38,7 @@ class Compilador:
         self.next_addr:  int = 0
         self.next_label: int = 0
         self.scope_stack: List[Dict[str, int]] = [self.variables]
-        self.array_scopes: List[Dict[str, tuple[int, int]]] = [{}]
+        self.array_scopes: List[Dict[str, tuple]] = [{}]
         self.in_function: bool = False
         self.loop_stack: List[tuple[str, str]] = []
         self.simbolos: Dict[str, int] = {}
@@ -57,7 +58,7 @@ class Compilador:
     def _scope_actual(self) -> Dict[str, int]:
         return self.scope_stack[-1]
 
-    def _array_scope_actual(self) -> Dict[str, tuple[int, int]]:
+    def _array_scope_actual(self) -> Dict[str, tuple]:
         return self.array_scopes[-1]
 
     def _binding_en_scope(self, escalar_scope, array_scope, nombre: str):
@@ -197,6 +198,8 @@ class Compilador:
 
     def _resolver_longitud_arg_arreglo(self, arg, array_scopes, scalar_scopes):
         if isinstance(arg, NodoLista):
+            if self._es_matriz_literal(arg):
+                return None
             return len(arg.elementos)
         if isinstance(arg, NodoID):
             nombre = arg.nombre
@@ -206,7 +209,12 @@ class Compilador:
                 if nombre in escalar_scope:
                     return None
                 if nombre in array_scope:
-                    return array_scope[nombre]
+                    meta = array_scope[nombre]
+                    if isinstance(meta, int):
+                        return meta
+                    if self._es_meta_matriz(meta):
+                        return None
+                    return meta[1]
         return None
 
     def _registrar_longitud_param_arreglo(self, fn_name: str, index: int,
@@ -428,6 +436,20 @@ class Compilador:
             return value
         return None
 
+    def _es_meta_matriz(self, meta) -> bool:
+        return isinstance(meta, tuple) and len(meta) == 3
+
+    def _es_matriz_literal(self, nodo_lista: NodoLista) -> bool:
+        if not nodo_lista.elementos:
+            return False
+        if not all(isinstance(elem, NodoLista) for elem in nodo_lista.elementos):
+            return False
+        filas = nodo_lista.elementos
+        cols = len(filas[0].elementos)
+        if cols == 0:
+            return False
+        return all(len(fila.elementos) == cols for fila in filas)
+
     def _resolve_array_scope(self, nombre: str):
         if self.in_function:
             for escalar_scope, array_scope in zip(
@@ -445,20 +467,22 @@ class Compilador:
             return self.array_scopes[0]
         return None
 
-    def _alloc_array(self, scope: Dict[str, tuple[int, int]],
-                     nombre: str, longitud: int) -> tuple[int, int]:
+    def _alloc_array(self, scope: Dict[str, tuple],
+                     nombre: str, longitud: int, columnas: int = None):
+        nuevo_meta = ((self.next_addr, longitud, columnas)
+                      if columnas is not None
+                      else (self.next_addr, longitud))
         if nombre in scope:
-            base, existente = scope[nombre]
-            if existente != longitud:
+            meta = scope[nombre]
+            if meta[1:] != nuevo_meta[1:]:
                 raise SyntaxError(
-                    f"El arreglo '{nombre}' ya existe con longitud {existente}")
-            return base, existente
+                    f"El arreglo '{nombre}' ya existe con otra forma")
+            return meta
         if nombre in self.variables and scope is not self.array_scopes[0]:
             pass
-        base = self.next_addr
-        self.next_addr += longitud
-        scope[nombre] = (base, longitud)
-        return base, longitud
+        self.next_addr += longitud if columnas is None else longitud * columnas
+        scope[nombre] = nuevo_meta
+        return nuevo_meta
 
     def _asignar_lista(self, nombre: str, nodo_lista: NodoLista,
                        declaracion: bool = False, global_explicito: bool = False):
@@ -487,7 +511,24 @@ class Compilador:
         if not global_explicito and not declaracion and nombre in self.variables and scope is self.array_scopes[0]:
             pass
 
-        base, existente = self._alloc_array(scope, nombre, longitud)
+        if self._es_matriz_literal(nodo_lista):
+            filas = len(elementos)
+            columnas = len(elementos[0].elementos)
+            meta = self._alloc_array(scope, nombre, filas, columnas)
+            base, existente_filas, existente_columnas = meta
+            if existente_filas != filas or existente_columnas != columnas:
+                raise SyntaxError(
+                    f"La matriz '{nombre}' esperaba forma "
+                    f"{existente_filas}x{existente_columnas}")
+            for fila_idx, fila in enumerate(elementos):
+                for col_idx, expr in enumerate(fila.elementos):
+                    self.compilar_expr(expr, 'R0')
+                    offset = fila_idx * columnas + col_idx
+                    self._emit(Operacion.STORE, None, 'R0', str(base + offset))
+            return
+
+        meta = self._alloc_array(scope, nombre, longitud)
+        base, existente = meta
         if existente != longitud:
             raise SyntaxError(
                 f"El arreglo '{nombre}' esperaba {existente} elementos")
@@ -500,6 +541,9 @@ class Compilador:
         info = self._lookup_array(nombre)
         if info is None:
             raise SyntaxError(f"Arreglo no definido: {nombre}")
+        if self._es_meta_matriz(info):
+            raise SyntaxError(
+                f"La matriz '{nombre}' requiere dos indices")
         base, longitud = info
 
         if isinstance(indice, NodoNum):
@@ -534,6 +578,9 @@ class Compilador:
         info = self._lookup_array(nombre)
         if info is None:
             raise SyntaxError(f"Arreglo no definido: {nombre}")
+        if self._es_meta_matriz(info):
+            raise SyntaxError(
+                f"La matriz '{nombre}' requiere dos indices")
         base, longitud = info
 
         if isinstance(indice, NodoNum):
@@ -562,6 +609,103 @@ class Compilador:
             self._emit(Operacion.LOAD_M, 'R0', str(valor_temp), label=etq_match)
             self._emit(Operacion.STORE, None, 'R0', str(base + i))
             self._emit(Operacion.JMP, None, etq_fin)
+        self._emit(Operacion.LOAD, 'R3', 'R3', label=etq_fin)
+
+    def _emit_matrix_load(self, nombre: str, fila, columna, reg: str) -> str:
+        info = self._lookup_array(nombre)
+        if info is None or not self._es_meta_matriz(info):
+            raise SyntaxError(f"Matriz no definida: {nombre}")
+        base, filas, columnas = info
+
+        if isinstance(fila, NodoNum) and isinstance(columna, NodoNum):
+            if (fila.valor < 0 or fila.valor >= filas or
+                    columna.valor < 0 or columna.valor >= columnas):
+                raise SyntaxError(
+                    f"Indices fuera de rango para '{nombre}': "
+                    f"{fila.valor}, {columna.valor}")
+            offset = fila.valor * columnas + columna.valor
+            self._emit(Operacion.LOAD_M, reg, str(base + offset))
+            return reg
+
+        fila_temp = self._addr_temp()
+        col_temp = self._addr_temp()
+        self.compilar_expr(fila, 'R0')
+        self._emit(Operacion.STORE, None, 'R0', str(fila_temp))
+        self.compilar_expr(columna, 'R1')
+        self._emit(Operacion.STORE, None, 'R1', str(col_temp))
+        etq_fin = self._nueva_etiqueta('matfin')
+        etq_default = self._nueva_etiqueta('matdefault')
+
+        for f in range(filas):
+            for c in range(columnas):
+                etq_match = self._nueva_etiqueta('matcell')
+                etq_next = self._nueva_etiqueta('matnext')
+                self._emit(Operacion.LOAD_M, 'R0', str(fila_temp))
+                self._emit(Operacion.CMP, None, 'R0', str(f))
+                self._emit(Operacion.JZ, None, etq_next)
+                continue_label = self._nueva_etiqueta('matcontinue')
+                self._emit(Operacion.JMP, None, continue_label)
+                self._emit(Operacion.LOAD, 'R3', 'R3', label=etq_next)
+                self._emit(Operacion.LOAD_M, 'R1', str(col_temp))
+                self._emit(Operacion.CMP, None, 'R1', str(c))
+                self._emit(Operacion.JZ, None, etq_match)
+                self._emit(Operacion.JMP, None, continue_label)
+                self._emit(Operacion.LOAD_M, reg, str(base + (f * columnas) + c),
+                           label=etq_match)
+                self._emit(Operacion.JMP, None, etq_fin)
+                self._emit(Operacion.LOAD, 'R3', 'R3', label=continue_label)
+
+        self._emit(Operacion.JMP, None, etq_default)
+        self._emit(Operacion.LOAD, reg, '0', label=etq_default)
+        self._emit(Operacion.LOAD, reg, reg, label=etq_fin)
+        return reg
+
+    def _emit_matrix_store(self, nombre: str, fila, columna, valor_reg: str = 'R0'):
+        info = self._lookup_array(nombre)
+        if info is None or not self._es_meta_matriz(info):
+            raise SyntaxError(f"Matriz no definida: {nombre}")
+        base, filas, columnas = info
+
+        if isinstance(fila, NodoNum) and isinstance(columna, NodoNum):
+            if (fila.valor < 0 or fila.valor >= filas or
+                    columna.valor < 0 or columna.valor >= columnas):
+                raise SyntaxError(
+                    f"Indices fuera de rango para '{nombre}': "
+                    f"{fila.valor}, {columna.valor}")
+            offset = fila.valor * columnas + columna.valor
+            self._emit(Operacion.STORE, None, valor_reg, str(base + offset))
+            return
+
+        valor_temp = self._addr_temp()
+        fila_temp = self._addr_temp()
+        col_temp = self._addr_temp()
+        self._emit(Operacion.STORE, None, valor_reg, str(valor_temp))
+        self.compilar_expr(fila, 'R0')
+        self._emit(Operacion.STORE, None, 'R0', str(fila_temp))
+        self.compilar_expr(columna, 'R1')
+        self._emit(Operacion.STORE, None, 'R1', str(col_temp))
+        etq_fin = self._nueva_etiqueta('matstorefin')
+
+        for f in range(filas):
+            for c in range(columnas):
+                etq_match = self._nueva_etiqueta('matstorecell')
+                etq_next = self._nueva_etiqueta('matstorenext')
+                continue_label = self._nueva_etiqueta('matstorecontinue')
+                self._emit(Operacion.LOAD_M, 'R0', str(fila_temp))
+                self._emit(Operacion.CMP, None, 'R0', str(f))
+                self._emit(Operacion.JZ, None, etq_next)
+                self._emit(Operacion.JMP, None, continue_label)
+                self._emit(Operacion.LOAD, 'R3', 'R3', label=etq_next)
+                self._emit(Operacion.LOAD_M, 'R1', str(col_temp))
+                self._emit(Operacion.CMP, None, 'R1', str(c))
+                self._emit(Operacion.JZ, None, etq_match)
+                self._emit(Operacion.JMP, None, continue_label)
+                self._emit(Operacion.LOAD_M, 'R0', str(valor_temp), label=etq_match)
+                self._emit(Operacion.STORE, None, 'R0',
+                           str(base + (f * columnas) + c))
+                self._emit(Operacion.JMP, None, etq_fin)
+                self._emit(Operacion.LOAD, 'R3', 'R3', label=continue_label)
+
         self._emit(Operacion.LOAD, 'R3', 'R3', label=etq_fin)
 
     def _addr_lectura(self, nombre: str) -> int:
@@ -718,6 +862,10 @@ class Compilador:
         if isinstance(nodo, NodoIndex):
             return self._emit_array_load(nodo.nombre, nodo.indice, reg)
 
+        if isinstance(nodo, NodoIndex2D):
+            return self._emit_matrix_load(
+                nodo.nombre, nodo.fila, nodo.columna, reg)
+
         if isinstance(nodo, NodoUnOp):
             self.compilar_expr(nodo.operando, reg)
             if nodo.op == '~':
@@ -870,6 +1018,11 @@ class Compilador:
             self.compilar_expr(nodo.expr, 'R0')
             self._emit_array_store(nodo.nombre, nodo.indice, 'R0')
 
+        elif isinstance(nodo, NodoIndex2DAsignar):
+            self.compilar_expr(nodo.expr, 'R0')
+            self._emit_matrix_store(
+                nodo.nombre, nodo.fila, nodo.columna, 'R0')
+
         elif isinstance(nodo, NodoPrint):
             self.compilar_expr(nodo.expr, 'R0')
             self._emit(Operacion.PRINT, None, 'R0')
@@ -1003,7 +1156,10 @@ class Compilador:
                 info = self._lookup_array(arg.nombre)
                 if info is None:
                     raise SyntaxError("len() espera un arreglo")
-                _, longitud = info
+                if self._es_meta_matriz(info):
+                    _, longitud, _ = info
+                else:
+                    _, longitud = info
                 self._emit(Operacion.LOAD, reg, str(longitud & 0xF))
                 return reg
             raise SyntaxError("len() espera un arreglo")
@@ -1017,6 +1173,8 @@ class Compilador:
                 info = self._lookup_array(arg.nombre)
                 if info is None:
                     raise SyntaxError("first() espera un arreglo")
+                if self._es_meta_matriz(info):
+                    raise SyntaxError("first() aun no soporta matrices")
                 base, longitud = info
                 if longitud == 0:
                     raise SyntaxError("first() no acepta arreglos vacios")
@@ -1033,6 +1191,8 @@ class Compilador:
                 info = self._lookup_array(arg.nombre)
                 if info is None:
                     raise SyntaxError("last() espera un arreglo")
+                if self._es_meta_matriz(info):
+                    raise SyntaxError("last() aun no soporta matrices")
                 base, longitud = info
                 if longitud == 0:
                     raise SyntaxError("last() no acepta arreglos vacios")

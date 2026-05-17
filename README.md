@@ -33,6 +33,9 @@ The current repository already supports:
 - `elif`, `break`, and `continue`
 - fixed-size arrays with literals, indexing, and indexed assignment
 - array scope and shadowing inside functions and nested blocks
+- array arguments passed to functions by copy
+- array builtins `len`, `first`, and `last`
+- lightweight symbols such as `@inicio`
 - function-local scope with global reads when names are not shadowed
 - block-local `let` declarations inside functions
 - explicit global writes from inside functions through `global name = expr`
@@ -56,6 +59,8 @@ tie examples/funciones.tie
 tie examples/estado_global.tie
 tie examples/control_flujo.tie
 tie examples/arreglos.tie
+tie examples/arreglos_funciones.tie
+tie examples/simbolos.tie
 tie --list-examples
 ```
 
@@ -98,6 +103,9 @@ print max(6, 9)
 - Arrays use fixed-size literals like `[1, 2, 3]`.
 - Array reads and writes use `xs[i]` and `xs[i] = v`.
 - Arrays participate in the same lexical shadowing rules as scalars.
+- Arrays can be passed into functions by copy.
+- `len(xs)`, `first(xs)`, and `last(xs)` are built in.
+- Lightweight symbols like `@inicio` compile to compact 4-bit tags.
 - Function scope is static and compiler-managed in the current implementation.
 - `let` inside function blocks creates block-local bindings.
 - Global writes inside functions are explicit: `global total = expr`.
@@ -120,7 +128,7 @@ Verification currently included in the repo:
 - Memory: `51/51`
 - ALU: `22/22`
 - CPU programs: `4/4`
-- Compiler programs: `27/27`
+- Compiler programs: `31/31`
 
 ## Repo guide
 

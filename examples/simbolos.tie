@@ -1,0 +1,14 @@
+let inicio = @inicio
+let fin = @fin
+
+print inicio == @inicio
+print inicio == fin
+
+def clasificar(x):
+    if x == @inicio:
+        print 7
+    else:
+        print 9
+
+clasificar(inicio)
+clasificar(fin)

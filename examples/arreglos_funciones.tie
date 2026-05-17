@@ -1,0 +1,9 @@
+def tocar(xs):
+    print len(xs)
+    print first(xs)
+    xs[1] = 9
+    print xs[1]
+
+let datos = [2, 4, 6]
+tocar(datos)
+print datos[1]

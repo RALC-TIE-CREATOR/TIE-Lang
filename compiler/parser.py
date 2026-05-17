@@ -15,7 +15,7 @@ Gramática:
     aritmetica  = termino (('+' | '-' | '&' | '|' | '^') termino)*
     termino     = unaria ('*' unaria)*
     unaria      = ('~' | 'not') primario | primario
-    primario    = NUM | lista | llamada | index | ID | '(' expr ')'
+    primario    = NUM | SYMBOL | lista | llamada | index | ID | '(' expr ')'
     llamada     = ID '(' args ')'
 """
 
@@ -36,6 +36,10 @@ class NodoBool:
 
 @dataclass
 class NodoID:
+    nombre: str
+
+@dataclass
+class NodoSymbol:
     nombre: str
 
 @dataclass
@@ -248,6 +252,9 @@ class Parser:
         if t.tipo == TipoToken.FALSE:
             self.consumir()
             return NodoBool(False)
+        if t.tipo == TipoToken.SYMBOL:
+            self.consumir()
+            return NodoSymbol(t.valor)
         if t.tipo == TipoToken.LBRACKET:
             return self.parse_lista()
         if t.tipo == TipoToken.ID:

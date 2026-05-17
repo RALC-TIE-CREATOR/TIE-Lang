@@ -53,6 +53,7 @@ Supported expression forms:
 
 - integer literals
 - boolean literals `true`, `false`
+- lightweight symbol literals such as `@inicio`
 - array literals such as `[1, 2, 3]`
 - identifiers
 - indexed array reads such as `xs[1]` or `xs[i]`
@@ -63,6 +64,12 @@ Supported expression forms:
 - comparisons `==`, `!=`, `<`, `>`, `<=`, `>=`
 - chained comparisons such as `a < b < c`
 - function calls
+
+Array builtins:
+
+- `len(xs)`
+- `first(xs)`
+- `last(xs)`
 
 Supported data updates:
 
@@ -84,6 +91,7 @@ Function behavior in v1.0:
 - `global name = expr` writes explicitly to the top-level variable namespace.
 - Return values are produced in `R3`.
 - A call used inside an expression is moved from `R3` into the requested destination register.
+- Array arguments are passed by copy into function-local array slots.
 
 Accepted call syntax:
 
@@ -167,6 +175,7 @@ Example:
 - Dynamic array indexing is compiled as explicit comparison-and-branch dispatch over the valid positions of that array.
 - Arrays follow the same lexical shadowing rules as scalar names.
 - A local scalar may shadow a global array, and a local array may shadow an outer scalar or array.
+- Lightweight symbols are interned per program into compact 4-bit identifiers.
 
 ## Current limits
 
@@ -179,7 +188,8 @@ Known implementation limits in v1.0:
 - no strings
 - `break` and `continue` are only valid inside `while`
 - arrays are fixed-size and 1-dimensional in the current model
-- arrays cannot yet be passed around as first-class values
+- arrays are passed by copy rather than by shared reference
+- symbol space is limited to 16 lightweight symbols per program
 - function scope is static at compile time, not a full dynamic stack-frame model
 - recursion is not guaranteed by the current RAM-slot allocation approach
 

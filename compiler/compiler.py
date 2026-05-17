@@ -15,10 +15,10 @@ compile_and_run() es el punto de entrada principal.
 from typing import List, Dict
 from .lexer import Lexer
 from .parser import (
-    Parser, NodoNum, NodoBool, NodoID, NodoLista, NodoIndex, NodoBinOp,
-    NodoCompareChain, NodoUnOp, NodoAsignar, NodoGlobalAsignar,
-    NodoIndexAsignar, NodoIf, NodoWhile, NodoDef, NodoLlamar,
-    NodoReturn, NodoPrint, NodoBreak, NodoContinue
+    Parser, NodoNum, NodoBool, NodoID, NodoSymbol, NodoLista, NodoIndex,
+    NodoBinOp, NodoCompareChain, NodoUnOp, NodoAsignar, NodoGlobalAsignar,
+    NodoIndexAsignar, NodoIf, NodoWhile, NodoDef, NodoLlamar, NodoReturn,
+    NodoPrint, NodoBreak, NodoContinue
 )
 import sys
 import os
@@ -40,6 +40,9 @@ class Compilador:
         self.array_scopes: List[Dict[str, tuple[int, int]]] = [{}]
         self.in_function: bool = False
         self.loop_stack: List[tuple[str, str]] = []
+        self.simbolos: Dict[str, int] = {}
+        self.function_array_params: Dict[str, Dict[int, int]] = {}
+        self.function_array_param_slots: Dict[str, Dict[int, tuple[int, int]]] = {}
 
     def _nueva_etiqueta(self, prefijo='L') -> str:
         self.next_label += 1
@@ -84,6 +87,340 @@ class Compilador:
                     return kind, value
         return self._binding_en_scope(
             self.variables, self.array_scopes[0], nombre)
+
+    def _intern_symbol(self, nombre: str) -> int:
+        if nombre not in self.simbolos:
+            if len(self.simbolos) >= 16:
+                raise SyntaxError(
+                    "Se excedio el maximo de 16 simbolos ligeros por programa")
+            self.simbolos[nombre] = len(self.simbolos)
+        return self.simbolos[nombre]
+
+    def _iterar_exprs(self, nodo):
+        if nodo is None:
+            return
+        yield nodo
+        if isinstance(nodo, NodoBinOp):
+            yield from self._iterar_exprs(nodo.izq)
+            yield from self._iterar_exprs(nodo.der)
+        elif isinstance(nodo, NodoCompareChain):
+            yield from self._iterar_exprs(nodo.primero)
+            for _, expr in nodo.comparaciones:
+                yield from self._iterar_exprs(expr)
+        elif isinstance(nodo, NodoUnOp):
+            yield from self._iterar_exprs(nodo.operando)
+        elif isinstance(nodo, NodoLista):
+            for expr in nodo.elementos:
+                yield from self._iterar_exprs(expr)
+        elif isinstance(nodo, NodoIndex):
+            yield from self._iterar_exprs(nodo.indice)
+        elif isinstance(nodo, NodoLlamar):
+            for arg in nodo.args:
+                yield from self._iterar_exprs(arg)
+
+    def _colectar_defs(self, stmts):
+        for stmt in stmts:
+            if isinstance(stmt, NodoDef):
+                self.funciones[stmt.nombre] = stmt
+                self._colectar_defs(stmt.cuerpo)
+            elif isinstance(stmt, NodoIf):
+                self._colectar_defs(stmt.cuerpo)
+                self._colectar_defs(stmt.sino)
+            elif isinstance(stmt, NodoWhile):
+                self._colectar_defs(stmt.cuerpo)
+
+    def _parametros_arreglo_en_cuerpo(self, nodo_def: NodoDef) -> set[str]:
+        usados = set()
+        params = set(nodo_def.params)
+
+        def visitar_expr(expr):
+            if isinstance(expr, NodoIndex) and expr.nombre in params:
+                usados.add(expr.nombre)
+                visitar_expr(expr.indice)
+                return
+            if isinstance(expr, NodoLlamar):
+                if expr.nombre in ('len', 'first', 'last'):
+                    for arg in expr.args:
+                        if isinstance(arg, NodoID) and arg.nombre in params:
+                            usados.add(arg.nombre)
+                        visitar_expr(arg)
+                    return
+                for arg in expr.args:
+                    visitar_expr(arg)
+                return
+            if isinstance(expr, NodoBinOp):
+                visitar_expr(expr.izq)
+                visitar_expr(expr.der)
+                return
+            if isinstance(expr, NodoCompareChain):
+                visitar_expr(expr.primero)
+                for _, subexpr in expr.comparaciones:
+                    visitar_expr(subexpr)
+                return
+            if isinstance(expr, NodoUnOp):
+                visitar_expr(expr.operando)
+                return
+            if isinstance(expr, NodoLista):
+                for subexpr in expr.elementos:
+                    visitar_expr(subexpr)
+
+        def visitar_stmt(stmt):
+            if isinstance(stmt, NodoIndexAsignar):
+                if stmt.nombre in params:
+                    usados.add(stmt.nombre)
+                visitar_expr(stmt.indice)
+                visitar_expr(stmt.expr)
+            elif isinstance(stmt, NodoAsignar):
+                visitar_expr(stmt.expr)
+            elif isinstance(stmt, NodoGlobalAsignar):
+                visitar_expr(stmt.expr)
+            elif isinstance(stmt, NodoPrint):
+                visitar_expr(stmt.expr)
+            elif isinstance(stmt, NodoReturn):
+                visitar_expr(stmt.expr)
+            elif isinstance(stmt, NodoIf):
+                visitar_expr(stmt.condicion)
+                for sub in stmt.cuerpo:
+                    visitar_stmt(sub)
+                for sub in stmt.sino:
+                    visitar_stmt(sub)
+            elif isinstance(stmt, NodoWhile):
+                visitar_expr(stmt.condicion)
+                for sub in stmt.cuerpo:
+                    visitar_stmt(sub)
+            elif isinstance(stmt, NodoLlamar):
+                visitar_expr(stmt)
+
+        for stmt in nodo_def.cuerpo:
+            visitar_stmt(stmt)
+        return usados
+
+    def _resolver_longitud_arg_arreglo(self, arg, array_scopes, scalar_scopes):
+        if isinstance(arg, NodoLista):
+            return len(arg.elementos)
+        if isinstance(arg, NodoID):
+            nombre = arg.nombre
+            for escalar_scope, array_scope in zip(
+                    reversed(scalar_scopes),
+                    reversed(array_scopes)):
+                if nombre in escalar_scope:
+                    return None
+                if nombre in array_scope:
+                    return array_scope[nombre]
+        return None
+
+    def _registrar_longitud_param_arreglo(self, fn_name: str, index: int,
+                                          longitud: int):
+        info = self.function_array_params.setdefault(fn_name, {})
+        previa = info.get(index)
+        if previa is None:
+            info[index] = longitud
+        elif previa != longitud:
+            raise SyntaxError(
+                f"El parametro arreglo #{index + 1} de '{fn_name}' "
+                f"recibe longitudes incompatibles ({previa} y {longitud})")
+
+    def _preanalizar_llamadas(self, stmts, scalar_scopes=None, array_scopes=None):
+        if scalar_scopes is None:
+            scalar_scopes = [set()]
+        if array_scopes is None:
+            array_scopes = [{}]
+
+        def declarar_escalar(nombre: str, declaracion: bool):
+            if declaracion or len(scalar_scopes) == 1:
+                scalar_scopes[-1].add(nombre)
+                return
+            for scope in reversed(scalar_scopes):
+                if nombre in scope:
+                    return
+            scalar_scopes[-1].add(nombre)
+
+        def declarar_array(nombre: str, longitud: int, declaracion: bool,
+                           global_explicito: bool = False):
+            if global_explicito:
+                array_scopes[0][nombre] = longitud
+                return
+            if declaracion or len(array_scopes) == 1:
+                array_scopes[-1][nombre] = longitud
+                return
+            for scope in reversed(array_scopes):
+                if nombre in scope:
+                    scope[nombre] = longitud
+                    return
+            array_scopes[-1][nombre] = longitud
+
+        def visitar_expr(expr):
+            if isinstance(expr, NodoLlamar):
+                self._registrar_llamada_arreglo(expr, array_scopes, scalar_scopes)
+                for arg in expr.args:
+                    visitar_expr(arg)
+            elif isinstance(expr, NodoBinOp):
+                visitar_expr(expr.izq)
+                visitar_expr(expr.der)
+            elif isinstance(expr, NodoCompareChain):
+                visitar_expr(expr.primero)
+                for _, subexpr in expr.comparaciones:
+                    visitar_expr(subexpr)
+            elif isinstance(expr, NodoUnOp):
+                visitar_expr(expr.operando)
+            elif isinstance(expr, NodoLista):
+                for subexpr in expr.elementos:
+                    visitar_expr(subexpr)
+            elif isinstance(expr, NodoIndex):
+                visitar_expr(expr.indice)
+
+        for stmt in stmts:
+            if isinstance(stmt, NodoAsignar):
+                if isinstance(stmt.expr, NodoLista):
+                    declarar_array(stmt.nombre, len(stmt.expr.elementos),
+                                   stmt.declaracion)
+                    for subexpr in stmt.expr.elementos:
+                        visitar_expr(subexpr)
+                else:
+                    declarar_escalar(stmt.nombre, stmt.declaracion)
+                    visitar_expr(stmt.expr)
+            elif isinstance(stmt, NodoGlobalAsignar):
+                if isinstance(stmt.expr, NodoLista):
+                    declarar_array(stmt.nombre, len(stmt.expr.elementos), False,
+                                   global_explicito=True)
+                    for subexpr in stmt.expr.elementos:
+                        visitar_expr(subexpr)
+                else:
+                    scalar_scopes[0].add(stmt.nombre)
+                    visitar_expr(stmt.expr)
+            elif isinstance(stmt, NodoIndexAsignar):
+                visitar_expr(stmt.indice)
+                visitar_expr(stmt.expr)
+            elif isinstance(stmt, NodoPrint):
+                visitar_expr(stmt.expr)
+            elif isinstance(stmt, NodoReturn):
+                visitar_expr(stmt.expr)
+            elif isinstance(stmt, NodoLlamar):
+                self._registrar_llamada_arreglo(stmt, array_scopes, scalar_scopes)
+                for arg in stmt.args:
+                    visitar_expr(arg)
+            elif isinstance(stmt, NodoIf):
+                visitar_expr(stmt.condicion)
+                scalar_scopes.append(set())
+                array_scopes.append({})
+                self._preanalizar_llamadas(stmt.cuerpo, scalar_scopes, array_scopes)
+                scalar_scopes.pop()
+                array_scopes.pop()
+                scalar_scopes.append(set())
+                array_scopes.append({})
+                self._preanalizar_llamadas(stmt.sino, scalar_scopes, array_scopes)
+                scalar_scopes.pop()
+                array_scopes.pop()
+            elif isinstance(stmt, NodoWhile):
+                visitar_expr(stmt.condicion)
+                scalar_scopes.append(set())
+                array_scopes.append({})
+                self._preanalizar_llamadas(stmt.cuerpo, scalar_scopes, array_scopes)
+                scalar_scopes.pop()
+                array_scopes.pop()
+            elif isinstance(stmt, NodoDef):
+                params_array = {
+                    index: self.function_array_params.get(stmt.nombre, {}).get(index)
+                    for index in self.function_array_params.get(stmt.nombre, {})
+                }
+                scalar_scopes.append(set())
+                array_scopes.append({})
+                for index, param in enumerate(stmt.params):
+                    if index in params_array:
+                        longitud = params_array[index]
+                        if longitud is not None:
+                            array_scopes[-1][param] = longitud
+                    else:
+                        scalar_scopes[-1].add(param)
+                self._preanalizar_llamadas(stmt.cuerpo, scalar_scopes, array_scopes)
+                scalar_scopes.pop()
+                array_scopes.pop()
+
+    def _registrar_llamada_arreglo(self, llamada: NodoLlamar, array_scopes, scalar_scopes):
+        if llamada.nombre in ('len', 'first', 'last'):
+            return
+        if llamada.nombre not in self.funciones:
+            return
+        param_arrays = self.function_array_params.get(llamada.nombre, {})
+        for index, _ in param_arrays.items():
+            if index >= len(llamada.args):
+                continue
+            longitud = self._resolver_longitud_arg_arreglo(
+                llamada.args[index], array_scopes, scalar_scopes)
+            if longitud is None:
+                raise SyntaxError(
+                    f"El parametro arreglo #{index + 1} de '{llamada.nombre}' "
+                    f"debe recibir un arreglo o literal de arreglo")
+            self._registrar_longitud_param_arreglo(
+                llamada.nombre, index, longitud)
+
+    def _reservar_parametros_arreglo(self):
+        for fn_name, nodo_def in self.funciones.items():
+            param_lengths = self.function_array_params.get(fn_name, {})
+            if not param_lengths:
+                continue
+            slots = {}
+            for index, longitud in param_lengths.items():
+                if longitud is None:
+                    raise SyntaxError(
+                        f"No se pudo inferir la longitud del parametro arreglo "
+                        f"#{index + 1} de '{fn_name}'")
+                base = self.next_addr
+                self.next_addr += longitud
+                slots[index] = (base, longitud)
+            self.function_array_param_slots[fn_name] = slots
+
+    def _preanalizar_programa(self, ast: list):
+        self.funciones = {}
+        self.function_array_params = {}
+        self.function_array_param_slots = {}
+        self._colectar_defs(ast)
+        for fn_name, nodo_def in self.funciones.items():
+            usados = self._parametros_arreglo_en_cuerpo(nodo_def)
+            if usados:
+                self.function_array_params[fn_name] = {
+                    index: None
+                    for index, param in enumerate(nodo_def.params)
+                    if param in usados
+                }
+        self._preanalizar_llamadas(ast)
+        self._reservar_parametros_arreglo()
+
+    def _registrar_parametros_arreglo_en_scope(self, nodo_def: NodoDef):
+        slots = self.function_array_param_slots.get(nodo_def.nombre, {})
+        if not slots:
+            return
+        array_scope = self._array_scope_actual()
+        for index, (base, longitud) in slots.items():
+            array_scope[nodo_def.params[index]] = (base, longitud)
+
+    def _copiar_argumento_arreglo(self, arg, base_dest: int, longitud: int):
+        if isinstance(arg, NodoLista):
+            if len(arg.elementos) != longitud:
+                raise SyntaxError(
+                    "Literal de arreglo con longitud incompatible en llamada")
+            for offset, expr in enumerate(arg.elementos):
+                self.compilar_expr(expr, 'R0')
+                self._emit(Operacion.STORE, None, 'R0', str(base_dest + offset))
+            return
+
+        if isinstance(arg, NodoID):
+            info = self._lookup_array(arg.nombre)
+            if info is None:
+                raise SyntaxError(
+                    f"El argumento '{arg.nombre}' no es un arreglo valido")
+            base_src, longitud_src = info
+            if longitud_src != longitud:
+                raise SyntaxError(
+                    f"El arreglo '{arg.nombre}' tiene longitud {longitud_src} "
+                    f"y se esperaba {longitud}")
+            for offset in range(longitud):
+                self._emit(Operacion.LOAD_M, 'R0', str(base_src + offset))
+                self._emit(Operacion.STORE, None, 'R0', str(base_dest + offset))
+            return
+
+        raise SyntaxError(
+            "Los parametros arreglo solo aceptan arreglos nombrados o literales")
 
     def _lookup_array(self, nombre: str):
         kind, value = self._lookup_binding(nombre)
@@ -364,6 +701,11 @@ class Compilador:
             self._emit(Operacion.LOAD, reg, '1' if nodo.valor else '0')
             return reg
 
+        if isinstance(nodo, NodoSymbol):
+            self._emit(Operacion.LOAD, reg,
+                       str(self._intern_symbol(nodo.nombre)))
+            return reg
+
         if isinstance(nodo, NodoLista):
             raise SyntaxError(
                 "Los literales de arreglo solo pueden usarse en asignaciones")
@@ -586,14 +928,19 @@ class Compilador:
             regs_args = ['R0', 'R1', 'R2', 'R3']
             self._push_scope()
             self.in_function = True
+            self._registrar_parametros_arreglo_en_scope(nodo)
 
+            reg_index = 0
             for i, param in enumerate(nodo.params[:4]):
+                if i in self.function_array_param_slots.get(nodo.nombre, {}):
+                    continue
                 prev_len = len(self.codigo)
-                self._emit(Operacion.STORE, None, regs_args[i],
+                self._emit(Operacion.STORE, None, regs_args[reg_index],
                            str(self._addr_escritura(param, declaracion=True)))
                 if primera:
                     self.codigo[prev_len].label = nodo.nombre
                     primera = False
+                reg_index += 1
             for s in nodo.cuerpo:
                 prev_len = len(self.codigo)
                 if isinstance(s, NodoReturn):
@@ -624,15 +971,79 @@ class Compilador:
 
     def compilar_llamada(self, nodo: NodoLlamar,
                           reg: str) -> str:
+        if nodo.nombre in ('len', 'first', 'last'):
+            return self.compilar_builtin(nodo, reg)
+
+        param_arrays = self.function_array_param_slots.get(nodo.nombre, {})
         regs_args = ['R0', 'R1', 'R2', 'R3']
+        reg_index = 0
         for i, arg in enumerate(nodo.args[:4]):
-            self.compilar_expr(arg, regs_args[i])
+            if i in param_arrays:
+                base, longitud = param_arrays[i]
+                self._copiar_argumento_arreglo(arg, base, longitud)
+                continue
+            self.compilar_expr(arg, regs_args[reg_index])
+            reg_index += 1
         self._emit(Operacion.CALL, None, nodo.nombre)
         if reg != 'R3':
             self._emit(Operacion.MOVE, reg, 'R3')
         return reg
 
+    def compilar_builtin(self, nodo: NodoLlamar, reg: str) -> str:
+        if len(nodo.args) != 1:
+            raise SyntaxError(
+                f"La builtin '{nodo.nombre}' espera exactamente 1 argumento")
+        arg = nodo.args[0]
+
+        if nodo.nombre == 'len':
+            if isinstance(arg, NodoLista):
+                self._emit(Operacion.LOAD, reg, str(len(arg.elementos) & 0xF))
+                return reg
+            if isinstance(arg, NodoID):
+                info = self._lookup_array(arg.nombre)
+                if info is None:
+                    raise SyntaxError("len() espera un arreglo")
+                _, longitud = info
+                self._emit(Operacion.LOAD, reg, str(longitud & 0xF))
+                return reg
+            raise SyntaxError("len() espera un arreglo")
+
+        if nodo.nombre == 'first':
+            if isinstance(arg, NodoLista):
+                if not arg.elementos:
+                    raise SyntaxError("first() no acepta arreglos vacios")
+                return self.compilar_expr(arg.elementos[0], reg)
+            if isinstance(arg, NodoID):
+                info = self._lookup_array(arg.nombre)
+                if info is None:
+                    raise SyntaxError("first() espera un arreglo")
+                base, longitud = info
+                if longitud == 0:
+                    raise SyntaxError("first() no acepta arreglos vacios")
+                self._emit(Operacion.LOAD_M, reg, str(base))
+                return reg
+            raise SyntaxError("first() espera un arreglo")
+
+        if nodo.nombre == 'last':
+            if isinstance(arg, NodoLista):
+                if not arg.elementos:
+                    raise SyntaxError("last() no acepta arreglos vacios")
+                return self.compilar_expr(arg.elementos[-1], reg)
+            if isinstance(arg, NodoID):
+                info = self._lookup_array(arg.nombre)
+                if info is None:
+                    raise SyntaxError("last() espera un arreglo")
+                base, longitud = info
+                if longitud == 0:
+                    raise SyntaxError("last() no acepta arreglos vacios")
+                self._emit(Operacion.LOAD_M, reg, str(base + longitud - 1))
+                return reg
+            raise SyntaxError("last() espera un arreglo")
+
+        raise SyntaxError(f"Builtin desconocida: {nodo.nombre}")
+
     def compilar(self, ast: list) -> List[Instruccion]:
+        self._preanalizar_programa(ast)
         for nodo in ast:
             self.compilar_stmt(nodo)
         self._emit(Operacion.HALT)

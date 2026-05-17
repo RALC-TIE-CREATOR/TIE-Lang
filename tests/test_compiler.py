@@ -5,7 +5,7 @@ Tests del compilador TIE-Lang v1.0.
 Verifica el pipeline completo:
     fuente → Lexer → Parser → AST → Compilador → CPU
 
-Programas verificados: 27/27 correctos.
+Programas verificados: 31/31 correctos.
 """
 
 import sys
@@ -554,6 +554,89 @@ print xs[1]
     print()
 
 
+def test_arreglo_como_argumento_por_copia():
+    """P28: los arreglos se pasan a funciones por copia controlada."""
+    print("── P28: Arreglo como argumento ──────────")
+    resultado = compile_and_run("""
+def tocar(xs):
+    print xs[1]
+    xs[1] = 9
+    print xs[1]
+
+let datos = [2, 4, 6]
+tocar(datos)
+print datos[1]
+""", titulo="P28", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [4, 9, 4]
+    print(f"  Salida: {salida}  esperado=[4, 9, 4]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
+def test_builtins_de_arreglo():
+    """P29: len, first y last funcionan sobre arreglos."""
+    print("── P29: Builtins de arreglo ─────────────")
+    resultado = compile_and_run("""
+let xs = [5, 7, 9]
+print len(xs)
+print first(xs)
+print last(xs)
+print len([1, 2, 3, 4])
+""", titulo="P29", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [3, 5, 9, 4]
+    print(f"  Salida: {salida}  esperado=[3, 5, 9, 4]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
+def test_funcion_con_arreglo_literal():
+    """P30: una funcion puede recibir un literal de arreglo."""
+    print("── P30: Literal de arreglo en funcion ───")
+    resultado = compile_and_run("""
+def bordes(xs):
+    return first(xs) + last(xs)
+
+print bordes([2, 3, 4])
+""", titulo="P30", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [6]
+    print(f"  Salida: {salida}  esperado=[6]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
+def test_simbolos_ligeros():
+    """P31: los simbolos ligeros compilan a etiquetas compactas comparables."""
+    print("── P31: Simbolos ligeros ─────────────────")
+    resultado = compile_and_run("""
+let inicio = @inicio
+let fin = @fin
+
+print inicio == @inicio
+print inicio == fin
+
+def clasificar(x):
+    if x == @inicio:
+        print 7
+    else:
+        print 9
+
+clasificar(inicio)
+clasificar(fin)
+""", titulo="P31", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [1, 0, 7, 9]
+    print(f"  Salida: {salida}  esperado=[1, 0, 7, 9]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
 if __name__ == "__main__":
     print("=" * 50)
     print("  TIE-Lang — Tests: Compilador v1.0")
@@ -586,4 +669,8 @@ if __name__ == "__main__":
     test_lectura_de_arreglo_global_desde_funcion()
     test_shadowing_escalar_sobre_arreglo_global()
     test_shadowing_de_arreglo_en_bloque()
-    print("✅ Compilador completo — 27/27 programas correctos")
+    test_arreglo_como_argumento_por_copia()
+    test_builtins_de_arreglo()
+    test_funcion_con_arreglo_literal()
+    test_simbolos_ligeros()
+    print("✅ Compilador completo — 31/31 programas correctos")

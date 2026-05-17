@@ -74,6 +74,17 @@ y variable, ademas de escritura por indice.
 
 Salida esperada: `3, 5, 9`
 
+### arreglos_funciones.tie
+Demuestra paso de arreglos por copia a funciones y utilidades
+`len`, `first` y lectura/mutacion local del parametro.
+
+Salida esperada: `3, 2, 9, 4`
+
+### simbolos.tie
+Demuestra simbolos ligeros como etiquetas compactas comparables.
+
+Salida esperada: `1, 0, 7, 9`
+
 ## Sintaxis oficial
 
 Para v1.0, la sintaxis pública recomendada en ejemplos es la forma

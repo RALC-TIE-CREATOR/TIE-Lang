@@ -15,6 +15,7 @@ from typing import List, Any
 class TipoToken(Enum):
     NUM     = auto()   # 42
     ID      = auto()   # nombre_variable
+    SYMBOL  = auto()   # @etiqueta
     LET     = auto()   # let
     IF      = auto()   # if
     ELIF    = auto()   # elif
@@ -126,6 +127,17 @@ class Lexer:
                         j += 1
                     self.tokens.append(
                         Token(TipoToken.NUM, int(stripped[i:j]), nlinea))
+                    i = j
+                    continue
+
+                if c == '@' and i + 1 < len(stripped) and (
+                        stripped[i + 1].isalpha() or stripped[i + 1] == '_'):
+                    j = i + 1
+                    while j < len(stripped) and (
+                            stripped[j].isalnum() or stripped[j] == '_'):
+                        j += 1
+                    self.tokens.append(
+                        Token(TipoToken.SYMBOL, stripped[i + 1:j], nlinea))
                     i = j
                     continue
 

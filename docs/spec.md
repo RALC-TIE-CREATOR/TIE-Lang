@@ -95,6 +95,7 @@ Function behavior in v1.0:
 - Return values are produced in `R3`.
 - A call used inside an expression is moved from `R3` into the requested destination register.
 - Array arguments are passed by copy into function-local array slots.
+- Matrix arguments are passed by copy into function-local matrix slots.
 
 Accepted call syntax:
 
@@ -196,6 +197,7 @@ Known implementation limits in v1.0:
 - arrays are fixed-size and 1-dimensional in the current model
 - matrices are fixed-size and rectangular in the current model
 - arrays are passed by copy rather than by shared reference
+- matrices are passed by copy rather than by shared reference
 - symbol space is limited to 16 lightweight symbols per program
 - function scope is static at compile time, not a full dynamic stack-frame model
 - recursion is not guaranteed by the current RAM-slot allocation approach

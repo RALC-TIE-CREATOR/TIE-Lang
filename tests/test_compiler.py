@@ -5,7 +5,7 @@ Tests del compilador TIE-Lang v1.0.
 Verifica el pipeline completo:
     fuente → Lexer → Parser → AST → Compilador → CPU
 
-Programas verificados: 34/34 correctos.
+Programas verificados: 37/37 correctos.
 """
 
 import sys
@@ -692,6 +692,64 @@ prueba()
     print()
 
 
+def test_matriz_como_argumento_por_copia():
+    """P35: una funcion recibe una matriz por copia."""
+    print("── P35: Matriz por copia en funcion ────")
+    resultado = compile_and_run("""
+def tocar(m):
+    print m[0][1]
+    m[1][0] = 9
+    print m[1][0]
+
+let grid = [[1, 2], [3, 4]]
+tocar(grid)
+print grid[1][0]
+""", titulo="P35", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [2, 9, 3]
+    print(f"  Salida: {salida}  esperado=[2, 9, 3]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
+def test_funcion_con_literal_matriz():
+    """P36: una funcion puede recibir un literal de matriz."""
+    print("── P36: Literal de matriz en funcion ───")
+    resultado = compile_and_run("""
+def diagonal(m):
+    return m[0][0] + m[1][1]
+
+print diagonal([[1, 2], [3, 4]])
+""", titulo="P36", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [5]
+    print(f"  Salida: {salida}  esperado=[5]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
+def test_lectura_de_matriz_global_desde_funcion():
+    """P37: una funcion puede leer una matriz global sin mutarla."""
+    print("── P37: Lectura de matriz global ───────")
+    resultado = compile_and_run("""
+let m = [[5, 6], [7, 8]]
+
+def leer():
+    print m[0][1]
+    print m[1][0]
+
+leer()
+""", titulo="P37", verbose_asm=False)
+
+    salida = resultado['salida']
+    ok = salida == [6, 7]
+    print(f"  Salida: {salida}  esperado=[6, 7]  {'✅' if ok else '❌'}")
+    assert ok
+    print()
+
+
 if __name__ == "__main__":
     print("=" * 50)
     print("  TIE-Lang — Tests: Compilador v1.0")
@@ -731,4 +789,7 @@ if __name__ == "__main__":
     test_matriz_2d_basica()
     test_matriz_2d_indices_dinamicos_y_escritura()
     test_matriz_local_en_funcion()
-    print("✅ Compilador completo — 34/34 programas correctos")
+    test_matriz_como_argumento_por_copia()
+    test_funcion_con_literal_matriz()
+    test_lectura_de_matriz_global_desde_funcion()
+    print("✅ Compilador completo — 37/37 programas correctos")

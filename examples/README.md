@@ -91,6 +91,12 @@ y dinamico, ademas de escritura por celda.
 
 Salida esperada: `2, 3, 9`
 
+### matrices_funciones.tie
+Demuestra paso de matrices por copia a funciones. La funcion muta su
+propia copia local y la matriz original permanece intacta.
+
+Salida esperada: `2, 9, 3`
+
 ## Sintaxis oficial
 
 Para v1.0, la sintaxis pública recomendada en ejemplos es la forma

@@ -34,7 +34,8 @@ Current work on `main` after `v0.2.0` includes:
 - array builtins: `len`, `first`, and `last`
 - lightweight symbol literals such as `@inicio`
 - rectangular 2D matrices with nested literals and `m[i][j]` access
-- stronger compiler coverage, now including 34 runnable compiler programs
+- matrix arguments passed into functions by copy
+- stronger compiler coverage, now including 37 runnable compiler programs
 - array scope and shadowing semantics aligned with function and block-local bindings
 
 ## v0.1.0

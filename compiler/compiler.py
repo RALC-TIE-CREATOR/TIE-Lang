@@ -42,8 +42,8 @@ class Compilador:
         self.in_function: bool = False
         self.loop_stack: List[tuple[str, str]] = []
         self.simbolos: Dict[str, int] = {}
-        self.function_array_params: Dict[str, Dict[int, int]] = {}
-        self.function_array_param_slots: Dict[str, Dict[int, tuple[int, int]]] = {}
+        self.function_array_params: Dict[str, Dict[int, object]] = {}
+        self.function_array_param_slots: Dict[str, Dict[int, tuple]] = {}
 
     def _nueva_etiqueta(self, prefijo='L') -> str:
         self.next_label += 1
@@ -139,6 +139,11 @@ class Compilador:
                 usados.add(expr.nombre)
                 visitar_expr(expr.indice)
                 return
+            if isinstance(expr, NodoIndex2D) and expr.nombre in params:
+                usados.add(expr.nombre)
+                visitar_expr(expr.fila)
+                visitar_expr(expr.columna)
+                return
             if isinstance(expr, NodoLlamar):
                 if expr.nombre in ('len', 'first', 'last'):
                     for arg in expr.args:
@@ -171,6 +176,12 @@ class Compilador:
                     usados.add(stmt.nombre)
                 visitar_expr(stmt.indice)
                 visitar_expr(stmt.expr)
+            elif isinstance(stmt, NodoIndex2DAsignar):
+                if stmt.nombre in params:
+                    usados.add(stmt.nombre)
+                visitar_expr(stmt.fila)
+                visitar_expr(stmt.columna)
+                visitar_expr(stmt.expr)
             elif isinstance(stmt, NodoAsignar):
                 visitar_expr(stmt.expr)
             elif isinstance(stmt, NodoGlobalAsignar):
@@ -196,11 +207,11 @@ class Compilador:
             visitar_stmt(stmt)
         return usados
 
-    def _resolver_longitud_arg_arreglo(self, arg, array_scopes, scalar_scopes):
+    def _resolver_meta_arg_compuesto(self, arg, array_scopes, scalar_scopes):
         if isinstance(arg, NodoLista):
             if self._es_matriz_literal(arg):
-                return None
-            return len(arg.elementos)
+                return ('matrix', (len(arg.elementos), len(arg.elementos[0].elementos)))
+            return ('array', len(arg.elementos))
         if isinstance(arg, NodoID):
             nombre = arg.nombre
             for escalar_scope, array_scope in zip(
@@ -211,22 +222,24 @@ class Compilador:
                 if nombre in array_scope:
                     meta = array_scope[nombre]
                     if isinstance(meta, int):
-                        return meta
+                        return ('array', meta)
+                    if (isinstance(meta, tuple) and len(meta) == 2 and
+                            all(isinstance(v, int) for v in meta)):
+                        return ('matrix', meta)
                     if self._es_meta_matriz(meta):
-                        return None
-                    return meta[1]
+                        return ('matrix', (meta[1], meta[2]))
+                    return ('array', meta[1])
         return None
 
-    def _registrar_longitud_param_arreglo(self, fn_name: str, index: int,
-                                          longitud: int):
+    def _registrar_meta_param_arreglo(self, fn_name: str, index: int, meta):
         info = self.function_array_params.setdefault(fn_name, {})
         previa = info.get(index)
         if previa is None:
-            info[index] = longitud
-        elif previa != longitud:
+            info[index] = meta
+        elif previa != meta:
             raise SyntaxError(
                 f"El parametro arreglo #{index + 1} de '{fn_name}' "
-                f"recibe longitudes incompatibles ({previa} y {longitud})")
+                f"recibe formas incompatibles ({previa} y {meta})")
 
     def _preanalizar_llamadas(self, stmts, scalar_scopes=None, array_scopes=None):
         if scalar_scopes is None:
@@ -243,19 +256,19 @@ class Compilador:
                     return
             scalar_scopes[-1].add(nombre)
 
-        def declarar_array(nombre: str, longitud: int, declaracion: bool,
+        def declarar_array(nombre: str, meta, declaracion: bool,
                            global_explicito: bool = False):
             if global_explicito:
-                array_scopes[0][nombre] = longitud
+                array_scopes[0][nombre] = meta
                 return
             if declaracion or len(array_scopes) == 1:
-                array_scopes[-1][nombre] = longitud
+                array_scopes[-1][nombre] = meta
                 return
             for scope in reversed(array_scopes):
                 if nombre in scope:
-                    scope[nombre] = longitud
+                    scope[nombre] = meta
                     return
-            array_scopes[-1][nombre] = longitud
+            array_scopes[-1][nombre] = meta
 
         def visitar_expr(expr):
             if isinstance(expr, NodoLlamar):
@@ -280,7 +293,10 @@ class Compilador:
         for stmt in stmts:
             if isinstance(stmt, NodoAsignar):
                 if isinstance(stmt.expr, NodoLista):
-                    declarar_array(stmt.nombre, len(stmt.expr.elementos),
+                    meta = ((len(stmt.expr.elementos), len(stmt.expr.elementos[0].elementos))
+                            if self._es_matriz_literal(stmt.expr)
+                            else len(stmt.expr.elementos))
+                    declarar_array(stmt.nombre, meta,
                                    stmt.declaracion)
                     for subexpr in stmt.expr.elementos:
                         visitar_expr(subexpr)
@@ -289,7 +305,10 @@ class Compilador:
                     visitar_expr(stmt.expr)
             elif isinstance(stmt, NodoGlobalAsignar):
                 if isinstance(stmt.expr, NodoLista):
-                    declarar_array(stmt.nombre, len(stmt.expr.elementos), False,
+                    meta = ((len(stmt.expr.elementos), len(stmt.expr.elementos[0].elementos))
+                            if self._es_matriz_literal(stmt.expr)
+                            else len(stmt.expr.elementos))
+                    declarar_array(stmt.nombre, meta, False,
                                    global_explicito=True)
                     for subexpr in stmt.expr.elementos:
                         visitar_expr(subexpr)
@@ -335,9 +354,12 @@ class Compilador:
                 array_scopes.append({})
                 for index, param in enumerate(stmt.params):
                     if index in params_array:
-                        longitud = params_array[index]
-                        if longitud is not None:
-                            array_scopes[-1][param] = longitud
+                        meta = params_array[index]
+                        if meta is not None:
+                            if meta[0] == 'array':
+                                array_scopes[-1][param] = meta[1]
+                            elif meta[0] == 'matrix':
+                                array_scopes[-1][param] = meta[1]
                     else:
                         scalar_scopes[-1].add(param)
                 self._preanalizar_llamadas(stmt.cuerpo, scalar_scopes, array_scopes)
@@ -353,14 +375,14 @@ class Compilador:
         for index, _ in param_arrays.items():
             if index >= len(llamada.args):
                 continue
-            longitud = self._resolver_longitud_arg_arreglo(
+            meta = self._resolver_meta_arg_compuesto(
                 llamada.args[index], array_scopes, scalar_scopes)
-            if longitud is None:
+            if meta is None:
                 raise SyntaxError(
                     f"El parametro arreglo #{index + 1} de '{llamada.nombre}' "
-                    f"debe recibir un arreglo o literal de arreglo")
-            self._registrar_longitud_param_arreglo(
-                llamada.nombre, index, longitud)
+                    f"debe recibir un arreglo, matriz o literal compatible")
+            self._registrar_meta_param_arreglo(
+                llamada.nombre, index, meta)
 
     def _reservar_parametros_arreglo(self):
         for fn_name, nodo_def in self.funciones.items():
@@ -368,14 +390,23 @@ class Compilador:
             if not param_lengths:
                 continue
             slots = {}
-            for index, longitud in param_lengths.items():
-                if longitud is None:
+            for index, meta in param_lengths.items():
+                if meta is None:
                     raise SyntaxError(
                         f"No se pudo inferir la longitud del parametro arreglo "
                         f"#{index + 1} de '{fn_name}'")
                 base = self.next_addr
-                self.next_addr += longitud
-                slots[index] = (base, longitud)
+                if meta[0] == 'array':
+                    longitud = meta[1]
+                    self.next_addr += longitud
+                    slots[index] = (base, longitud)
+                elif meta[0] == 'matrix':
+                    filas, columnas = meta[1]
+                    self.next_addr += filas * columnas
+                    slots[index] = (base, filas, columnas)
+                else:
+                    raise SyntaxError(
+                        f"Metadata compuesta invalida en '{fn_name}'")
             self.function_array_param_slots[fn_name] = slots
 
     def _preanalizar_programa(self, ast: list):
@@ -399,36 +430,74 @@ class Compilador:
         if not slots:
             return
         array_scope = self._array_scope_actual()
-        for index, (base, longitud) in slots.items():
-            array_scope[nodo_def.params[index]] = (base, longitud)
+        for index, slot_meta in slots.items():
+            array_scope[nodo_def.params[index]] = slot_meta
 
-    def _copiar_argumento_arreglo(self, arg, base_dest: int, longitud: int):
-        if isinstance(arg, NodoLista):
-            if len(arg.elementos) != longitud:
-                raise SyntaxError(
-                    "Literal de arreglo con longitud incompatible en llamada")
-            for offset, expr in enumerate(arg.elementos):
-                self.compilar_expr(expr, 'R0')
-                self._emit(Operacion.STORE, None, 'R0', str(base_dest + offset))
-            return
+    def _copiar_argumento_compuesto(self, arg, dest_meta):
+        if len(dest_meta) == 2:
+            base_dest, longitud = dest_meta
+            if isinstance(arg, NodoLista):
+                if len(arg.elementos) != longitud or self._es_matriz_literal(arg):
+                    raise SyntaxError(
+                        "Literal de arreglo con longitud incompatible en llamada")
+                for offset, expr in enumerate(arg.elementos):
+                    self.compilar_expr(expr, 'R0')
+                    self._emit(Operacion.STORE, None, 'R0', str(base_dest + offset))
+                return
 
-        if isinstance(arg, NodoID):
-            info = self._lookup_array(arg.nombre)
-            if info is None:
-                raise SyntaxError(
-                    f"El argumento '{arg.nombre}' no es un arreglo valido")
-            base_src, longitud_src = info
-            if longitud_src != longitud:
-                raise SyntaxError(
-                    f"El arreglo '{arg.nombre}' tiene longitud {longitud_src} "
-                    f"y se esperaba {longitud}")
-            for offset in range(longitud):
-                self._emit(Operacion.LOAD_M, 'R0', str(base_src + offset))
-                self._emit(Operacion.STORE, None, 'R0', str(base_dest + offset))
-            return
+            if isinstance(arg, NodoID):
+                info = self._lookup_array(arg.nombre)
+                if info is None or self._es_meta_matriz(info):
+                    raise SyntaxError(
+                        f"El argumento '{arg.nombre}' no es un arreglo 1D valido")
+                base_src, longitud_src = info
+                if longitud_src != longitud:
+                    raise SyntaxError(
+                        f"El arreglo '{arg.nombre}' tiene longitud {longitud_src} "
+                        f"y se esperaba {longitud}")
+                for offset in range(longitud):
+                    self._emit(Operacion.LOAD_M, 'R0', str(base_src + offset))
+                    self._emit(Operacion.STORE, None, 'R0', str(base_dest + offset))
+                return
+
+        if len(dest_meta) == 3:
+            base_dest, filas, columnas = dest_meta
+            if isinstance(arg, NodoLista):
+                if (not self._es_matriz_literal(arg) or len(arg.elementos) != filas or
+                        len(arg.elementos[0].elementos) != columnas):
+                    raise SyntaxError(
+                        "Literal de matriz con forma incompatible en llamada")
+                for f, fila in enumerate(arg.elementos):
+                    for c, expr in enumerate(fila.elementos):
+                        self.compilar_expr(expr, 'R0')
+                        self._emit(
+                            Operacion.STORE, None, 'R0',
+                            str(base_dest + (f * columnas) + c))
+                return
+
+            if isinstance(arg, NodoID):
+                info = self._lookup_array(arg.nombre)
+                if info is None or not self._es_meta_matriz(info):
+                    raise SyntaxError(
+                        f"El argumento '{arg.nombre}' no es una matriz valida")
+                base_src, filas_src, columnas_src = info
+                if filas_src != filas or columnas_src != columnas:
+                    raise SyntaxError(
+                        f"La matriz '{arg.nombre}' tiene forma "
+                        f"{filas_src}x{columnas_src} y se esperaba "
+                        f"{filas}x{columnas}")
+                for f in range(filas):
+                    for c in range(columnas):
+                        self._emit(
+                            Operacion.LOAD_M, 'R0',
+                            str(base_src + (f * columnas_src) + c))
+                        self._emit(
+                            Operacion.STORE, None, 'R0',
+                            str(base_dest + (f * columnas) + c))
+                return
 
         raise SyntaxError(
-            "Los parametros arreglo solo aceptan arreglos nombrados o literales")
+            "Los parametros compuestos solo aceptan arreglos o matrices compatibles")
 
     def _lookup_array(self, nombre: str):
         kind, value = self._lookup_binding(nombre)
@@ -1132,8 +1201,7 @@ class Compilador:
         reg_index = 0
         for i, arg in enumerate(nodo.args[:4]):
             if i in param_arrays:
-                base, longitud = param_arrays[i]
-                self._copiar_argumento_arreglo(arg, base, longitud)
+                self._copiar_argumento_compuesto(arg, param_arrays[i])
                 continue
             self.compilar_expr(arg, regs_args[reg_index])
             reg_index += 1

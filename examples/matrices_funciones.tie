@@ -1,0 +1,8 @@
+def tocar(m):
+    print m[0][1]
+    m[1][0] = 9
+    print m[1][0]
+
+let grid = [[1, 2], [3, 4]]
+tocar(grid)
+print grid[1][0]

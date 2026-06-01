@@ -18,6 +18,7 @@
 - Apache License 2.0 added
 - `v0.1.0` tag and GitHub release created
 - `v0.2.0` release prepared for the current public repository state
+- `v0.3.0` release prepared for the first topological execution preview
 - `tie` chosen as the primary public command
 - legacy whitespace argument syntax retained for compatibility in v1.0
 
@@ -27,3 +28,5 @@
 - `examples/funciones.tie`
 - `examples/busqueda.tie`
 - `examples/comparadores.tie`
+- `examples/topologia_bits.tie`
+- `examples/topologia_alu.tie`

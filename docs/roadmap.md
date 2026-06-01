@@ -14,15 +14,18 @@ Today the project already has:
 - compiler and CPU verification
 - an experimental neural layer
 
-## v0.3.0 direction
+## v0.3.0 delivered
 
-The next major step is no longer only "more language features".
+The `v0.3.0` release starts the experimental topological execution track.
 
-The direction for `v0.3.0` is:
+Delivered in `v0.3.0`:
 
 - keep the current compiler/CPU path as the stable backend
-- begin a true topological execution backend in parallel
-- make the substrate itself part of the project, not only the syntax
+- begin a topological execution backend in parallel
+- introduce a cubic lattice, closed-loop memory, and local interactions
+- lower a small TIE-Lang subset into topological instructions
+- add a 4-plane topological ALU preview
+- project registers into the phase substrate and report stability
 
 ## Topological backend goals
 

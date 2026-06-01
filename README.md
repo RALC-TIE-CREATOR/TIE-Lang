@@ -44,6 +44,9 @@ The current repository already supports:
 - official CLI execution through `tie`
 - canonical example programs
 - an experimental neural layer with trainable perceptrons and minimal MLPs
+- a new experimental `topology/` runtime preview for v0.3.0
+- local loop interactions and first projection into the phase substrate in `core/`
+- a first source-level lowering path from a tiny TIE-Lang subset into the topological backend
 
 ## Quick start
 
@@ -145,6 +148,7 @@ Verification currently included in the repo:
 - `examples/` - canonical `.tie` programs
 - `tests/` - verification suites
 - `neural/` - experimental learning layer
+- `topology/` - experimental topological execution substrate
 - `docs/` - specification, architecture, roadmap, and distribution notes
 
 ## Read next
@@ -153,6 +157,7 @@ Verification currently included in the repo:
 - [Architecture](/C:/Users/ralc0/Downloads/TIE-Lang/docs/arquitectura.md)
 - [Examples](/C:/Users/ralc0/Downloads/TIE-Lang/examples/README.md)
 - [Roadmap](/C:/Users/ralc0/Downloads/TIE-Lang/docs/roadmap.md)
+- [Topological Runtime v0.3.0](/C:/Users/ralc0/Downloads/TIE-Lang/docs/topological_runtime_v0_3.md)
 - [Changelog](/C:/Users/ralc0/Downloads/TIE-Lang/CHANGELOG.md)
 - [Contributing](/C:/Users/ralc0/Downloads/TIE-Lang/CONTRIBUTING.md)
 

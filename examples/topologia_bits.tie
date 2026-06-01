@@ -1,0 +1,9 @@
+let a = 1
+let b = not a
+print a
+print b
+
+if b:
+    print 9
+else:
+    print 7

@@ -37,6 +37,18 @@ Current work on `main` after `v0.2.0` includes:
 - matrix arguments passed into functions by copy
 - stronger compiler coverage, now including 37 runnable compiler programs
 - array scope and shadowing semantics aligned with function and block-local bindings
+- first `v0.3.0` topological execution preview in `topology/`
+- topological ALU registers represented as 4-plane lattice bundles
+- local carry propagation traces for arithmetic results through `alu_trace`
+- shared phase-field projection for full topological registers, including
+  reconstructed `measured_value`
+- formal phase stability reports with `stable`, `bit_errors`, and `energy_delta`
+- experimental wider `stable` register layout for phase projection experiments
+- `tie-topology --stability` report mode
+- cubic lattice, closed-loop, and topological memory runtime primitives
+- design documentation for the new topological backend direction
+- local loop interaction rules: repulsion, annihilation, coexistence
+- first bridge from loop states into the sine-Gordon-style phase substrate
 
 ## v0.1.0
 
@@ -59,3 +71,20 @@ Notes:
 - Official public syntax is comma-separated function arguments.
 - Legacy whitespace-separated argument syntax remains accepted in v1.0 for compatibility.
 - Arithmetic is defined by the current 4-bit CPU model.
+# Unreleased
+
+## Added
+- Extended the experimental topological VM with a first minimal ALU covering `*`,
+  `~`, `&`, `|`, and `^` in addition to the existing `+`, `-`, `inc`, and `dec`.
+- Added `examples/topologia_alu.tie` as a source-level demo for the experimental
+  topological ALU path.
+- Materialized experimental ALU values as 4-plane topological registers instead
+  of leaving non-bit temporals as plain scalar VM-only values.
+- Added per-plane `alu_trace` data for arithmetic results, including carry
+  generation, propagation, target plane, and local loop interaction.
+
+## Verified
+- Added execution tests for extended topological ALU instructions and lowering.
+- Added topology tests for register snapshots and per-plane phase projection.
+- Added regression coverage for local carry propagation across neighboring
+  topological register planes.

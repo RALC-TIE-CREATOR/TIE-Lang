@@ -1,0 +1,13 @@
+let x = 6
+let y = 3
+
+print x * y
+print x & y
+print x | y
+print x ^ y
+print ~y
+
+if (x * y) == 2:
+    print 9
+else:
+    print 1

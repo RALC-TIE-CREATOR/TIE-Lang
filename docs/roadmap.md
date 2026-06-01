@@ -14,6 +14,42 @@ Today the project already has:
 - compiler and CPU verification
 - an experimental neural layer
 
+## v0.3.0 direction
+
+The next major step is no longer only "more language features".
+
+The direction for `v0.3.0` is:
+
+- keep the current compiler/CPU path as the stable backend
+- begin a true topological execution backend in parallel
+- make the substrate itself part of the project, not only the syntax
+
+## Topological backend goals
+
+### 1. Topological memory
+
+- represent information as persistent topological structures
+- begin with closed loops on a cubic lattice
+- preserve state under translation and deformation
+
+### 2. Topological transitions
+
+- define local reversible or quasi-local update rules
+- move beyond scalar RAM semantics
+- introduce defect interaction primitives
+- connect those transition rules to the phase substrate already present in `core/`
+
+### 3. Substrate evolution
+
+- connect the discrete preview to the existing sine-Gordon-style `core/` layer
+- add explicit phase evolution and relaxation
+- compare discrete loop storage with phase-field dynamics
+
+### 4. Language bridge
+
+- define a subset of TIE-Lang that can lower into the topological backend
+- keep the current CPU backend as the reference path during transition
+
 ## Next language goals
 
 ### 1. Function expressiveness
@@ -52,4 +88,5 @@ The next strong public release should feel like:
 
 - a cleaner repository front page
 - a more expressive language core
-- a better defined boundary between stable language features and experimental neural work
+- the first explicit topological execution preview
+- a better defined boundary between stable language features and experimental substrate work

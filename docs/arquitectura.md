@@ -52,3 +52,26 @@ El flujo actual es:
 La semántica del lenguaje en v1.0 está definida por la máquina de 4 bits actual.
 Eso significa que el compilador no está modelando enteros abstractos infinitos,
 sino programas que corren sobre una CPU concreta con wraparound modular.
+
+## Apertura de v0.3.0
+
+La siguiente etapa del proyecto abre una nueva capa experimental:
+
+5. `topology/`
+   Introduce un backend de ejecución topológica en paralelo al backend
+   estable de CPU. Su primera versión no busca reemplazar la máquina actual,
+   sino modelar memoria y transición sobre una red cúbica mediante lazos
+   cerrados autoevitantes y carga topológica discreta.
+
+## Arquitectura dual a partir de v0.3.0
+
+Desde `v0.3.0`, TIE-Lang pasa a tener dos rutas:
+
+1. Ruta estable
+   `source -> lexer -> parser -> compiler -> 4-bit CPU -> execution`
+
+2. Ruta topológica experimental
+   `topological state -> lattice/loop runtime -> measured topological state`
+
+La intención es que, con el tiempo, una parte del compilador pueda bajar un
+subconjunto del lenguaje a esta segunda ruta sin perder la primera.

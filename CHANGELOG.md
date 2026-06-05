@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+Current work toward `v0.4.0`:
+
+- added experimental phase-causal ALU mode for the topological backend
+- added `--phase-causal` to `python -m compiler.topological_run`
+- ALU results can now be projected into the phase field and committed from
+  `measured_value`
+- phase-causal reports are exposed in execution snapshots and copied from
+  temporaries to assigned user variables
+- added `examples/topologia_phase_causal.tie`
+
 ## v0.3.0
 
 Third public release of TIE-Lang, focused on the first experimental

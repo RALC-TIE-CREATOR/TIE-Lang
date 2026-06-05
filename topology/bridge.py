@@ -48,7 +48,7 @@ class PhaseFieldBridge:
         energia_inicial = red.energia()
         red.evolucionar(pasos=pasos, dt=dt)
         energia_final = red.energia()
-        measured = medir_N(red.fases, center_x, center_y, radio=radius + 2)
+        measured = medir_N(red.fases, center_x, center_y, radio=radius)
 
         return {
             "center": (center_x, center_y),
@@ -82,12 +82,14 @@ class PhaseFieldBridge:
         plane_results = {}
         measured_bits = []
         for idx, (loop, (center_x, center_y, radius)) in enumerate(zip(loops, centers)):
-            measured = medir_N(red.fases, center_x, center_y, radio=radius)
+            raw_measured = medir_N(red.fases, center_x, center_y, radio=radius)
+            measured = 1 if raw_measured > 0 else -1
             measured_bits.append(1 if measured > 0 else 0)
             plane_results[f"b{idx}"] = {
                 "center": (center_x, center_y),
                 "input_winding": loop.winding,
                 "measured_winding": measured,
+                "raw_measured_winding": raw_measured,
                 "radius": radius,
             }
 

@@ -303,6 +303,7 @@ class TopologicalLowerer:
         with_phase_projection: bool = False,
         phase_steps: int = 8,
         phase_dt: float = 0.08,
+        phase_causal_alu: bool = False,
     ) -> TopologicalExecutionResult:
         lexer = Lexer(fuente)
         parser = Parser(lexer.tokens)
@@ -311,7 +312,11 @@ class TopologicalLowerer:
         for stmt in ast:
             self._compile_stmt(stmt)
 
-        machine = TopologicalInstructionMachine()
+        machine = TopologicalInstructionMachine(
+            phase_causal_alu=phase_causal_alu,
+            phase_steps=phase_steps,
+            phase_dt=phase_dt,
+        )
         result = machine.execute(
             self.instructions,
             with_phase_projection=with_phase_projection,
@@ -328,9 +333,11 @@ class TopologicalLowerer:
 def run_topological_source(
     fuente: str,
     with_phase_projection: bool = False,
+    phase_causal_alu: bool = False,
 ) -> TopologicalExecutionResult:
     lowerer = TopologicalLowerer()
     return lowerer.run_source(
         fuente,
         with_phase_projection=with_phase_projection,
+        phase_causal_alu=phase_causal_alu,
     )

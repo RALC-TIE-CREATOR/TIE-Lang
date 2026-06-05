@@ -277,6 +277,27 @@ still a transitional design:
 That means `v0.3.0` now has a real topological register ALU path, but not yet a
 fully dynamical lattice-native ALU.
 
+## Post-v0.3.0: phase-causal ALU preview
+
+The next local development track begins `v0.4.0`.
+
+In the first opt-in preview, ALU execution can use the phase substrate
+causally:
+
+- the instruction machine computes a tentative ALU register
+- the register is projected into the phase field
+- the field evolves and is measured
+- the VM commits `measured_value` as the final value
+
+This is exposed through:
+
+```bash
+python -m compiler.topological_run examples/topologia_phase_causal.tie --phase-causal
+```
+
+This mode is deliberately experimental and can change program output when a
+compact register layout is unstable under phase evolution.
+
 ## Next milestones after the preview
 
 ### Phase 1

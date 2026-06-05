@@ -131,6 +131,12 @@ def test_instruction_machine_alu_bitwise_and_multiply():
     assert result.snapshot["band"]["value"] == 2
     assert result.snapshot["inv"]["value"] == 12
     assert "alu_trace" in result.snapshot["mul"]
+    assert "alu_trace" in result.snapshot["band"]
+    assert "alu_trace" in result.snapshot["bor"]
+    assert "alu_trace" in result.snapshot["bxor"]
+    assert "alu_trace" in result.snapshot["inv"]
+    assert result.snapshot["band"]["alu_trace"][0]["interaction"] == "logic"
+    assert result.snapshot["inv"]["alu_trace"][0]["interaction"] == "logic"
     assert any(step["carry_out"] == 1 for step in result.snapshot["mul"]["alu_trace"])
 
 
@@ -154,3 +160,20 @@ def test_instruction_machine_local_carry_propagation_trace():
     assert trace[2]["target_plane"] == 3
     assert trace[3]["target_plane"] is None
     assert trace[3]["interaction"] == "annihilate"
+
+
+def test_instruction_machine_phase_causal_alu_commits_measured_value():
+    machine = TopologicalInstructionMachine(phase_causal_alu=True)
+    result = machine.execute(
+        [
+            TopologicalInstruction("STORE_CONST", ("x", 6)),
+            TopologicalInstruction("STORE_CONST", ("y", 1)),
+            TopologicalInstruction("STORE_BINARY", ("z", "+", ("var", "x"), ("var", "y"))),
+            TopologicalInstruction("PRINT_VAR", ("z",)),
+        ]
+    )
+    report = result.snapshot["z"]["phase_causal"]
+    assert report["operation"] == "+"
+    assert report["input_value"] == 7
+    assert report["committed_value"] == result.output[0]
+    assert report["committed_value"] == result.snapshot["z"]["value"]

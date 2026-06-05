@@ -115,6 +115,15 @@ def test_runtime_phase_projection_reports_cells():
     assert result["q1"]["measured_winding"] == -1
 
 
+def test_runtime_phase_projection_keeps_nearby_cell_windings_separate():
+    runtime = TopologicalRuntimePreview(CubicLattice(16, 16, 1))
+    runtime.write_bit("q0", 1, origin=(1, 1, 0))
+    runtime.write_bit("q1", 1, origin=(5, 1, 0))
+    result = runtime.phase_projection(pasos=8, dt=0.08)
+    assert result["q0"]["measured_winding"] == 1
+    assert result["q1"]["measured_winding"] == 1
+
+
 def test_runtime_register_write_and_read_value():
     runtime = TopologicalRuntimePreview(CubicLattice(24, 24, 1))
     runtime.write_value("acc", 13, origin=(1, 1, 0))

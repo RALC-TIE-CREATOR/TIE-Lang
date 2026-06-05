@@ -3,6 +3,7 @@
 ## Ready now
 
 - compiler and CPU tests passing
+- topological backend tests passing
 - official runner available
 - root CLI available
 - examples aligned with current 4-bit semantics
@@ -30,3 +31,4 @@
 - `examples/comparadores.tie`
 - `examples/topologia_bits.tie`
 - `examples/topologia_alu.tie`
+- `examples/topologia_phase_causal.tie`

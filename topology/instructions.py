@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from .alu import CarryTransition, TopologicalALU
+from .bridge import PhaseFieldBridge
 from .runtime import TopologicalRuntimePreview
 
 
@@ -24,13 +25,23 @@ class TopologicalInstructionMachine:
     Maquina intermedia del backend topologico.
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        phase_causal_alu: bool = False,
+        phase_steps: int = 8,
+        phase_dt: float = 0.08,
+    ):
         self.runtime = TopologicalRuntimePreview()
         self.alu = TopologicalALU(self.runtime.lattice)
+        self.phase_bridge = PhaseFieldBridge()
+        self.phase_causal_alu = phase_causal_alu
+        self.phase_steps = phase_steps
+        self.phase_dt = phase_dt
         self.values: dict[str, int] = {}
         self.origins: dict[str, tuple[int, int, int]] = {}
         self.output: list[int] = []
         self.alu_traces: dict[str, list[CarryTransition]] = {}
+        self.phase_causal_reports: dict[str, dict] = {}
         self.next_origin_x = 1
         self.next_origin_y = 1
 
@@ -54,11 +65,69 @@ class TopologicalInstructionMachine:
         origin = self._allocate_origin(name)
         self.runtime.write_value(name, value, origin=origin)
 
+    def _apply_phase_causal_commit(self, name: str, operation: str):
+        if not self.phase_causal_alu or name not in self.runtime.registers:
+            return
+
+        projection = self.phase_bridge.project_register(
+            self.runtime.registers[name],
+            pasos=self.phase_steps,
+            dt=self.phase_dt,
+        )
+        measured_value = projection["measured_value"]
+        original_value = self.values[name]
+        report = {
+            "operation": operation,
+            "input_value": original_value,
+            "measured_value": measured_value,
+            "committed_value": measured_value,
+            "bits": projection["bits"],
+            "measured_bits": projection["measured_bits"],
+            "stability": projection["stability"],
+            "layout": projection["layout"],
+        }
+
+        self.values[name] = measured_value
+        if measured_value != original_value:
+            origin = self._allocate_origin(name)
+            self.runtime.write_value(name, measured_value, origin=origin)
+        self.phase_causal_reports[name] = report
+
     def _bits_from_value(self, value: int) -> list[int]:
         return self.alu.bits_from_value(value)
 
     def _value_from_bits(self, bits: list[int]) -> int:
         return self.alu.value_from_bits(bits)
+
+    def _logical_trace(
+        self,
+        left_bits: list[int],
+        right_bits: list[int],
+        result_bits: list[int],
+    ) -> list[CarryTransition]:
+        transitions = []
+        for plane, (left_bit, right_bit, result_bit) in enumerate(
+            zip(left_bits[:4], right_bits[:4], result_bits[:4])
+        ):
+            charge_before = (1 if left_bit else -1) + (1 if right_bit else -1)
+            charge_after = 1 if result_bit else -1
+            transitions.append(
+                CarryTransition(
+                    plane=plane,
+                    target_plane=None,
+                    left_bit=left_bit,
+                    right_bit=right_bit,
+                    carry_in=0,
+                    result_bit=result_bit,
+                    generate=1 if left_bit and right_bit else 0,
+                    propagate=1 if left_bit ^ right_bit else 0,
+                    carry_out=0,
+                    interaction="logic",
+                    charge_before=charge_before,
+                    charge_after=charge_after,
+                )
+            )
+        return transitions
 
     def _resolve_bits(self, ref) -> list[int]:
         return self._bits_from_value(self._resolve_ref(ref))
@@ -183,6 +252,13 @@ class TopologicalInstructionMachine:
                 if source not in self.values:
                     raise SyntaxError(f"La variable '{source}' no existe")
                 self._store_value(target, self.values[source])
+                if source in self.alu_traces:
+                    self.alu_traces[target] = self.alu_traces[source]
+                if source in self.phase_causal_reports:
+                    self.phase_causal_reports[target] = {
+                        **self.phase_causal_reports[source],
+                        "source": source,
+                    }
                 ip += 1
                 continue
 
@@ -208,6 +284,14 @@ class TopologicalInstructionMachine:
                         else self.alu.sub_bits(operand_bits, other)
                     )
                     self.alu_traces[target] = result.transitions
+                if unary_op == "~":
+                    self.alu_traces[target] = self._logical_trace(
+                        operand_bits,
+                        [0, 0, 0, 0],
+                        result_bits,
+                    )
+                if unary_op in ("inc", "dec", "~"):
+                    self._apply_phase_causal_commit(target, unary_op)
                 ip += 1
                 continue
 
@@ -224,6 +308,14 @@ class TopologicalInstructionMachine:
                         "*": self.alu.mul_bits,
                     }[binary_op](left_bits, right_bits)
                     self.alu_traces[target] = result.transitions
+                if binary_op in ("&", "|", "^"):
+                    self.alu_traces[target] = self._logical_trace(
+                        left_bits,
+                        right_bits,
+                        result_bits,
+                    )
+                if binary_op in ("+", "-", "*", "&", "|", "^"):
+                    self._apply_phase_causal_commit(target, binary_op)
                 ip += 1
                 continue
 
@@ -332,6 +424,11 @@ class TopologicalInstructionMachine:
                                 ]
                             }
                             if name in self.alu_traces
+                            else {}
+                        ),
+                        **(
+                            {"phase_causal": self.phase_causal_reports[name]}
+                            if name in self.phase_causal_reports
                             else {}
                         ),
                     }

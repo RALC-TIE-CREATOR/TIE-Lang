@@ -47,6 +47,7 @@ The current repository already supports:
 - a new experimental `topology/` runtime preview for v0.3.0
 - local loop interactions and first projection into the phase substrate in `core/`
 - a first source-level lowering path from a tiny TIE-Lang subset into the topological backend
+- an opt-in phase-causal ALU preview where measured phase results can affect output
 
 ## Quick start
 
@@ -54,6 +55,13 @@ Install locally:
 
 ```bash
 pip install -e .
+```
+
+For development and review runs:
+
+```bash
+pip install -e ".[dev]"
+python -m pytest tests
 ```
 
 Run a program:

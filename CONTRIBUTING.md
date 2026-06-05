@@ -20,6 +20,12 @@ Install locally:
 pip install -e .
 ```
 
+Install review/test tooling:
+
+```bash
+pip install -e ".[dev]"
+```
+
 Run examples:
 
 ```bash
@@ -30,6 +36,7 @@ tie examples/fibonacci.tie
 Run tests directly:
 
 ```bash
+python -m pytest tests
 python tests/test_compiler.py
 python tests/test_cpu.py
 python tests/test_neural.py

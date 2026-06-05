@@ -141,3 +141,24 @@ The topological runner can also report register stability:
 ```bash
 python -m compiler.topological_run examples/topologia_alu.tie --stability
 ```
+
+## Phase-causal ALU preview
+
+Work after `v0.3.0` begins the `v0.4.0` direction: the phase field can now
+participate causally in ALU execution.
+
+In opt-in mode, an ALU operation:
+
+1. computes a tentative 4-plane register value
+2. projects that register into the shared phase substrate
+3. measures `measured_value`
+4. commits that measured value back into the VM
+
+Run it with:
+
+```bash
+python -m compiler.topological_run examples/topologia_phase_causal.tie --phase-causal
+```
+
+This is intentionally experimental. It means unstable compact layouts can change
+program output, which is the point of this preview.

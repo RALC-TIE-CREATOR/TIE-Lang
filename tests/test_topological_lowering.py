@@ -149,3 +149,33 @@ else:
 """
     )
     assert result.output == [2, 2, 7, 5, 12, 9]
+
+
+def test_topological_lowering_bitwise_exposes_alu_trace():
+    result = run_topological_source(
+        """
+let x = 6
+let y = 3
+let z = x & y
+print z
+"""
+    )
+    assert result.output == [2]
+    assert result.snapshot["z"]["alu_trace"][0]["interaction"] == "logic"
+
+
+def test_topological_lowering_phase_causal_alu():
+    result = run_topological_source(
+        """
+let x = 6
+let y = 1
+let z = x + y
+print z
+""",
+        phase_causal_alu=True,
+    )
+    report = result.snapshot["z"]["phase_causal"]
+    assert report["operation"] == "+"
+    assert report["input_value"] == 7
+    assert result.output == [report["committed_value"]]
+    assert report["source"] == "__t1"

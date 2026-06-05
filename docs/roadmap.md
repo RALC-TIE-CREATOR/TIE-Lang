@@ -47,6 +47,20 @@ Delivered in `v0.3.0`:
 - connect the discrete preview to the existing sine-Gordon-style `core/` layer
 - add explicit phase evolution and relaxation
 - compare discrete loop storage with phase-field dynamics
+- make phase evolution causally affect selected ALU results in opt-in mode
+
+## v0.4.0 direction
+
+The next technical milestone is phase-causal execution.
+
+The first local preview already allows:
+
+- tentative ALU results to be projected into the phase field
+- `measured_value` to be committed back into the VM
+- unstable topological layouts to affect actual program output
+
+The next refinement is to move from "measure then commit" toward transition rules
+whose output is produced by phase evolution itself.
 
 ### 4. Language bridge
 

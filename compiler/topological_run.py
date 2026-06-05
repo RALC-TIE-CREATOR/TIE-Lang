@@ -40,10 +40,27 @@ def _summarize_stability(projection: dict) -> dict:
     }
 
 
+def _summarize_phase_causal(snapshot: dict) -> dict:
+    return {
+        name: {
+            "operation": item["phase_causal"]["operation"],
+            "input_value": item["phase_causal"]["input_value"],
+            "measured_value": item["phase_causal"]["measured_value"],
+            "committed_value": item["phase_causal"]["committed_value"],
+            "stable": item["phase_causal"]["stability"]["stable"],
+            "bit_errors": item["phase_causal"]["stability"]["bit_errors"],
+            "layout": item["phase_causal"]["layout"],
+        }
+        for name, item in snapshot.items()
+        if "phase_causal" in item
+    }
+
+
 def run_file(
     path: str,
     with_phase_projection: bool = False,
     with_stability: bool = False,
+    phase_causal_alu: bool = False,
 ) -> dict:
     archivo = Path(path)
     if not archivo.exists():
@@ -52,9 +69,12 @@ def run_file(
     resultado = run_topological_source(
         fuente,
         with_phase_projection=with_phase_projection or with_stability,
+        phase_causal_alu=phase_causal_alu,
     )
     print(f"Topological output: {resultado.output}")
     print(f"Topological snapshot: {resultado.snapshot}")
+    if phase_causal_alu:
+        print(f"Phase-causal ALU: {_summarize_phase_causal(resultado.snapshot)}")
     if resultado.phase_projection is not None:
         print(f"Phase projection: {_summarize_phase_projection(resultado.phase_projection)}")
         if with_stability:
@@ -83,6 +103,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Reporta estabilidad de fase por registro topologico",
     )
     parser.add_argument(
+        "--phase-causal",
+        action="store_true",
+        help="Hace que la fase comprometa el valor final de operaciones ALU",
+    )
+    parser.add_argument(
         "--version",
         action="store_true",
         help="Muestra la version actual del runner topologico",
@@ -103,6 +128,7 @@ def main(argv: list[str] | None = None) -> int:
             args.path,
             with_phase_projection=args.phase,
             with_stability=args.stability,
+            phase_causal_alu=args.phase_causal,
         )
         return 0
     except Exception as exc:

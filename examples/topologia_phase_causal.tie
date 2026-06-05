@@ -1,0 +1,11 @@
+let x = 6
+let y = 1
+let z = x + y
+
+print z
+
+let a = 12
+let b = 0
+let c = a + b
+
+print c
